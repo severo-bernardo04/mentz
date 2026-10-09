@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../models/profile_models.dart';
 import 'auth_widgets.dart';
 import 'loginpage.dart';
-import 'profile/profile_page.dart';
+import 'profiles/profile_page.dart';
 
 class Homepage extends StatefulWidget {
   /// Nome do usuário (no Firebase: FirebaseAuth.instance.currentUser?.displayName)
