@@ -1,16 +1,44 @@
 import 'package:flutter/material.dart';
 
+import '../models/profile_models.dart';
 import 'auth_widgets.dart';
 import 'loginpage.dart';
+import 'profile/profile_page.dart';
 
-class Homepage extends StatelessWidget {
+class Homepage extends StatefulWidget {
   /// Nome do usuário (no Firebase: FirebaseAuth.instance.currentUser?.displayName)
   final String? userName;
 
   /// E-mail do usuário (no Firebase: FirebaseAuth.instance.currentUser?.email)
   final String? userEmail;
 
-  const Homepage({super.key, this.userName, this.userEmail});
+  /// Papel do usuário. TODO: vir do backend (ex: claim/doc do usuário).
+  final UserRole role;
+
+  const Homepage({
+    super.key,
+    this.userName,
+    this.userEmail,
+    this.role = UserRole.student,
+  });
+
+  @override
+  State<Homepage> createState() => _HomepageState();
+}
+
+class _HomepageState extends State<Homepage> {
+  late UserRole _role = widget.role;
+
+  String? get userName => widget.userName;
+  String? get userEmail => widget.userEmail;
+
+  void _openProfile() {
+    Navigator.of(context).push(
+      fadeSlideRoute(
+        ProfilePage(role: _role, userName: userName, userEmail: userEmail),
+      ),
+    );
+  }
 
   String get _displayName {
     final name = userName?.trim() ?? '';
@@ -127,6 +155,26 @@ class Homepage extends StatelessWidget {
                         ),
                       ),
                     ),
+                    const SizedBox(height: 16),
+                    // TODO: remover — apenas para testar os dois perfis.
+                    SegmentedButton<UserRole>(
+                      showSelectedIcon: false,
+                      segments: const [
+                        ButtonSegment(
+                          value: UserRole.student,
+                          icon: Icon(Icons.person_outline),
+                          label: Text('Aluno'),
+                        ),
+                        ButtonSegment(
+                          value: UserRole.trainer,
+                          icon: Icon(Icons.sports_gymnastics),
+                          label: Text('Treinador'),
+                        ),
+                      ],
+                      selected: {_role},
+                      onSelectionChanged: (v) =>
+                          setState(() => _role = v.first),
+                    ),
                     const SizedBox(height: 28),
                     FadeSlideIn(
                       delay: const Duration(milliseconds: 150),
@@ -145,12 +193,13 @@ class Homepage extends StatelessWidget {
                       mainAxisSpacing: 16,
                       crossAxisSpacing: 16,
                       childAspectRatio: 1.15,
-                      children: const [
+                      children: [
                         FadeSlideIn(
                           delay: Duration(milliseconds: 250),
                           child: _ShortcutCard(
                             icon: Icons.person_outline,
                             label: 'Perfil',
+                            onTap: _openProfile,
                           ),
                         ),
                         FadeSlideIn(
