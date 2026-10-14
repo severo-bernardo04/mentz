@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'auth_widgets.dart';
 import 'loginpage.dart';
 import 'create_training_chart_page.dart';
+import 'settings_page.dart';
 import '../models/training_chart.dart';
 import '../services/training_chart_service.dart';
 
@@ -58,6 +59,16 @@ class Homepage extends StatelessWidget {
           ),
         ),
         actions: [
+          IconButton(
+            key: const Key('home_settings_appbar_button'),
+            tooltip: 'Ajustes',
+            icon: const Icon(Icons.settings_outlined),
+            onPressed: () {
+              Navigator.of(context).push(
+                fadeSlideRoute(const SettingsPage()),
+              );
+            },
+          ),
           IconButton(
             tooltip: 'Sair',
             icon: const Icon(Icons.logout_rounded),
@@ -323,11 +334,17 @@ class Homepage extends StatelessWidget {
                             label: 'Explorar',
                           ),
                         ),
-                        const FadeSlideIn(
-                          delay: Duration(milliseconds: 490),
+                        FadeSlideIn(
+                          delay: const Duration(milliseconds: 490),
                           child: _ShortcutCard(
+                            key: const Key('home_settings_shortcut_card'),
                             icon: Icons.settings_outlined,
                             label: 'Ajustes',
+                            onTap: () {
+                              Navigator.of(context).push(
+                                fadeSlideRoute(const SettingsPage()),
+                              );
+                            },
                           ),
                         ),
                       ],
@@ -349,6 +366,7 @@ class _ShortcutCard extends StatelessWidget {
   final VoidCallback? onTap;
 
   const _ShortcutCard({
+    super.key,
     required this.icon,
     required this.label,
     this.onTap,

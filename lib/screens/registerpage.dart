@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'auth_widgets.dart';
 import 'homepage.dart';
+import '../services/settings_service.dart';
 
 
 class Registerpage extends StatefulWidget {
@@ -131,10 +132,14 @@ class _RegisterpageState extends State<Registerpage> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final cs = theme.colorScheme;
+    return Theme(
+      data: SettingsService.authTheme,
+      child: Builder(
+        builder: (context) {
+          final theme = Theme.of(context);
+          final cs = theme.colorScheme;
 
-    return Scaffold(
+          return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
@@ -373,6 +378,9 @@ class _RegisterpageState extends State<Registerpage> {
             ),
           ),
         ),
+      ),
+    );
+        },
       ),
     );
   }
