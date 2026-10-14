@@ -60,10 +60,15 @@ class SettingsService extends ChangeNotifier {
   Future<File> _getFile() async {
     if (_preferencesFile != null) return _preferencesFile!;
     try {
-      final dir = Directory.current;
+      final dir = Directory.systemTemp;
       _preferencesFile = File('${dir.path}/settings_prefs.json');
     } catch (_) {
-      _preferencesFile = File('settings_prefs.json');
+      try {
+        final dir = Directory.current;
+        _preferencesFile = File('${dir.path}/settings_prefs.json');
+      } catch (_) {
+        _preferencesFile = File('settings_prefs.json');
+      }
     }
     return _preferencesFile!;
   }
