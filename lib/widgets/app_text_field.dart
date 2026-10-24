@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
 
 /// Campo de texto padrão do app. Com `isPassword`, já inclui o botão de
-/// mostrar/ocultar senha.
+/// mostrar/ocultar senha. `label`, `hint` e `icon` são opcionais.
 class AppTextField extends StatefulWidget {
   final TextEditingController controller;
-  final String label;
-  final IconData icon;
+  final String? label;
+  final String? hint;
+  final IconData? icon;
   final bool isPassword;
+  final int? minLines;
+  final int maxLines;
   final TextInputType? keyboardType;
   final TextInputAction? textInputAction;
   final TextCapitalization textCapitalization;
@@ -18,9 +21,12 @@ class AppTextField extends StatefulWidget {
   const AppTextField({
     super.key,
     required this.controller,
-    required this.label,
-    required this.icon,
+    this.label,
+    this.hint,
+    this.icon,
     this.isPassword = false,
+    this.minLines,
+    this.maxLines = 1,
     this.keyboardType,
     this.textInputAction,
     this.textCapitalization = TextCapitalization.none,
@@ -42,6 +48,8 @@ class _AppTextFieldState extends State<AppTextField> {
     return TextFormField(
       controller: widget.controller,
       obscureText: widget.isPassword && _obscure,
+      minLines: widget.minLines,
+      maxLines: widget.maxLines,
       keyboardType: widget.keyboardType,
       textInputAction: widget.textInputAction,
       textCapitalization: widget.textCapitalization,
@@ -52,6 +60,7 @@ class _AppTextFieldState extends State<AppTextField> {
       decoration: appInputDecoration(
         context,
         label: widget.label,
+        hint: widget.hint,
         icon: widget.icon,
         suffix: widget.isPassword ? _buildToggle() : null,
       ),
@@ -75,8 +84,9 @@ class _AppTextFieldState extends State<AppTextField> {
 /// Estilo padrão dos campos (pública para outros formulários do app).
 InputDecoration appInputDecoration(
   BuildContext context, {
-  required String label,
-  required IconData icon,
+  String? label,
+  String? hint,
+  IconData? icon,
   Widget? suffix,
 }) {
   final cs = Theme.of(context).colorScheme;
@@ -90,7 +100,8 @@ InputDecoration appInputDecoration(
 
   return InputDecoration(
     labelText: label,
-    prefixIcon: Icon(icon),
+    hintText: hint,
+    prefixIcon: icon == null ? null : Icon(icon),
     suffixIcon: suffix,
     filled: true,
     fillColor: cs.surfaceContainerHighest.withAlpha(90),
