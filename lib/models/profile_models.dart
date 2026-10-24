@@ -105,11 +105,207 @@ class WorkoutPlan {
         assignedStudents = assignedStudents ?? [];
 }
 
+enum SetType {
+  warmup('Aquecimento'),
+  working('Série válida'),
+  failure('Falha'),
+  dropSet('Drop set');
+
+  final String label;
+  const SetType(this.label);
+}
+
+class ExecutedSet {
+  final int setNumber;
+  final SetType type;
+  final String load;
+  final String reps;
+  final bool completed;
+
+  const ExecutedSet({
+    required this.setNumber,
+    this.type = SetType.working,
+    required this.load,
+    required this.reps,
+    this.completed = true,
+  });
+
+  ExecutedSet copyWith({
+    int? setNumber,
+    SetType? type,
+    String? load,
+    String? reps,
+    bool? completed,
+  }) {
+    return ExecutedSet(
+      setNumber: setNumber ?? this.setNumber,
+      type: type ?? this.type,
+      load: load ?? this.load,
+      reps: reps ?? this.reps,
+      completed: completed ?? this.completed,
+    );
+  }
+
+  Map<String, dynamic> toMap() => {
+        'setNumber': setNumber,
+        'type': type.name,
+        'load': load,
+        'reps': reps,
+        'completed': completed,
+      };
+
+  factory ExecutedSet.fromMap(Map<String, dynamic> map) {
+    return ExecutedSet(
+      setNumber: (map['setNumber'] as num?)?.toInt() ?? 1,
+      type: SetType.values.firstWhere(
+        (e) => e.name == map['type'],
+        orElse: () => SetType.working,
+      ),
+      load: map['load'] as String? ?? '—',
+      reps: map['reps'] as String? ?? '—',
+      completed: map['completed'] as bool? ?? true,
+    );
+  }
+}
+
+class ExecutedExercise {
+  final String name;
+  final String muscle;
+  final List<ExecutedSet> sets;
+  final bool completed;
+  final String? notes;
+
+  const ExecutedExercise({
+    required this.name,
+    this.muscle = '',
+    this.sets = const [],
+    this.completed = true,
+    this.notes,
+  });
+
+  ExecutedExercise copyWith({
+    String? name,
+    String? muscle,
+    List<ExecutedSet>? sets,
+    bool? completed,
+    String? notes,
+  }) {
+    return ExecutedExercise(
+      name: name ?? this.name,
+      muscle: muscle ?? this.muscle,
+      sets: sets ?? this.sets,
+      completed: completed ?? this.completed,
+      notes: notes ?? this.notes,
+    );
+  }
+
+  Map<String, dynamic> toMap() => {
+        'name': name,
+        'muscle': muscle,
+        'sets': sets.map((s) => s.toMap()).toList(),
+        'completed': completed,
+        'notes': notes,
+      };
+
+  factory ExecutedExercise.fromMap(Map<String, dynamic> map) {
+    return ExecutedExercise(
+      name: map['name'] as String? ?? '',
+      muscle: map['muscle'] as String? ?? '',
+      sets: (map['sets'] as List?)
+              ?.map((s) =>
+                  ExecutedSet.fromMap(Map<String, dynamic>.from(s as Map)))
+              .toList() ??
+          const [],
+      completed: map['completed'] as bool? ?? true,
+      notes: map['notes'] as String?,
+    );
+  }
+}
+
 class CompletedWorkout {
+  final String? id;
   final DateTime date;
   final String plan;
   final int minutes;
-  const CompletedWorkout(this.date, this.plan, this.minutes);
+  final String? chartName;
+  final String? workoutName;
+  final List<ExecutedExercise> executedExercises;
+
+  const CompletedWorkout(
+    this.date,
+    this.plan,
+    this.minutes, {
+    this.id,
+    this.chartName,
+    this.workoutName,
+    this.executedExercises = const [],
+  });
+
+  String get displayWorkoutName =>
+      workoutName ?? (plan.startsWith('Treino') ? plan : 'Treino $plan');
+
+  String get displayChartName => chartName ?? 'Training Charts 1';
+
+  String get weekdayName {
+    const days = [
+      'Segunda-feira',
+      'Terça-feira',
+      'Quarta-feira',
+      'Quinta-feira',
+      'Sexta-feira',
+      'Sábado',
+      'Domingo',
+    ];
+    return days[date.weekday - 1];
+  }
+
+  CompletedWorkout copyWith({
+    String? id,
+    DateTime? date,
+    String? plan,
+    int? minutes,
+    String? chartName,
+    String? workoutName,
+    List<ExecutedExercise>? executedExercises,
+  }) {
+    return CompletedWorkout(
+      date ?? this.date,
+      plan ?? this.plan,
+      minutes ?? this.minutes,
+      id: id ?? this.id,
+      chartName: chartName ?? this.chartName,
+      workoutName: workoutName ?? this.workoutName,
+      executedExercises: executedExercises ?? this.executedExercises,
+    );
+  }
+
+  Map<String, dynamic> toMap() => {
+        'id': id,
+        'date': date.toIso8601String(),
+        'plan': plan,
+        'minutes': minutes,
+        'chartName': chartName,
+        'workoutName': workoutName,
+        'executedExercises': executedExercises.map((e) => e.toMap()).toList(),
+      };
+
+  factory CompletedWorkout.fromMap(Map<String, dynamic> map) {
+    return CompletedWorkout(
+      map['date'] != null
+          ? DateTime.tryParse(map['date'] as String) ?? DateTime.now()
+          : DateTime.now(),
+      map['plan'] as String? ?? '',
+      (map['minutes'] as num?)?.toInt() ?? 0,
+      id: map['id'] as String?,
+      chartName: map['chartName'] as String?,
+      workoutName: map['workoutName'] as String?,
+      executedExercises: (map['executedExercises'] as List?)
+              ?.map((e) =>
+                  ExecutedExercise.fromMap(Map<String, dynamic>.from(e as Map)))
+              .toList() ??
+          const [],
+    );
+  }
 }
 
 class PersonalRecord {

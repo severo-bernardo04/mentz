@@ -8,6 +8,7 @@ import '../auth/login_page.dart';
 import '../profile/profile_page.dart';
 import '../settings/settings_page.dart';
 import '../training/create_training_chart_page.dart';
+import '../training_history/training_history_page.dart';
 import 'widgets/home_app_bar.dart';
 import 'widgets/role_switcher.dart';
 import 'widgets/section_header.dart';
@@ -40,6 +41,8 @@ class _HomePageState extends State<HomePage> {
   late UserRole _role = widget.role;
 
   void _openNewChart() => context.pushFade(const CreateTrainingChartPage());
+
+  void _openHistory() => context.pushFade(const TrainingHistoryPage());
 
   void _openSettings() => context.pushFade(const SettingsPage());
 
@@ -116,6 +119,7 @@ class _HomePageState extends State<HomePage> {
                     ShortcutsGrid(
                       onNewChart: _openNewChart,
                       onProfile: _openProfile,
+                      onHistory: _openHistory,
                       onSettings: _openSettings,
                     ),
                   ],

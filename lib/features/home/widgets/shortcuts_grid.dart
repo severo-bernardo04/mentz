@@ -8,12 +8,14 @@ class ShortcutsGrid extends StatelessWidget {
   final VoidCallback onNewChart;
   final VoidCallback onProfile;
   final VoidCallback onSettings;
+  final VoidCallback? onHistory;
 
   const ShortcutsGrid({
     super.key,
     required this.onNewChart,
     required this.onProfile,
     required this.onSettings,
+    this.onHistory,
   });
 
   @override
@@ -29,7 +31,12 @@ class ShortcutsGrid extends StatelessWidget {
         label: 'Perfil',
         onTap: onProfile,
       ),
-      const ShortcutCard(icon: Icons.explore_outlined, label: 'Explorar'),
+      ShortcutCard(
+        key: const Key('home_history_shortcut_card'),
+        icon: Icons.history_rounded,
+        label: 'Histórico',
+        onTap: onHistory,
+      ),
       ShortcutCard(
         key: const Key('home_settings_shortcut_card'),
         icon: Icons.settings_outlined,
