@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:mentz/core/routes/fade_slide_route.dart';
 import 'package:mentz/core/utils/validators.dart';
+import 'package:mentz/features/exercises/exercises_catalog_page.dart';
 import 'package:mentz/models/profile_models.dart';
 import 'package:mentz/widgets/app_button.dart';
 import 'package:mentz/widgets/app_text_field.dart';
@@ -31,6 +33,8 @@ class _ExerciseSheetState extends State<ExerciseSheet> {
       ? widget.exercise!.restSeconds
       : 60;
 
+  Exercise? _catalogExercise;
+
   @override
   void dispose() {
     _name.dispose();
@@ -42,6 +46,23 @@ class _ExerciseSheetState extends State<ExerciseSheet> {
 
   String _restLabel(int seconds) =>
       seconds >= 60 && seconds % 60 == 0 ? '${seconds ~/ 60} min' : '${seconds}s';
+
+  Future<void> _openCatalog() async {
+    final selected = await Navigator.of(context).push<Exercise>(
+      fadeSlideRoute(const ExercisesCatalogPage(isSelecting: true)),
+    );
+    if (!mounted || selected == null) return;
+
+    setState(() {
+      _catalogExercise = selected;
+      _name.text = selected.name;
+      _muscle.text = selected.displayPrimaryMuscle;
+      _sets = selected.sets;
+      _reps.text = selected.reps;
+      if (selected.load != '—') _load.text = selected.load;
+      _rest = selected.restSeconds;
+    });
+  }
 
   void _submit() {
     if (!_formKey.currentState!.validate()) return;
@@ -56,6 +77,18 @@ class _ExerciseSheetState extends State<ExerciseSheet> {
         reps: _reps.text.trim(),
         load: load.isEmpty ? '—' : load,
         restSeconds: _rest,
+        nameEn: _catalogExercise?.nameEn ?? widget.exercise?.nameEn,
+        primaryMuscle:
+            _catalogExercise?.primaryMuscle ?? widget.exercise?.primaryMuscle,
+        highActivationMuscles: _catalogExercise?.highActivationMuscles ??
+            widget.exercise?.highActivationMuscles ??
+            const [],
+        secondaryMuscles: _catalogExercise?.secondaryMuscles ??
+            widget.exercise?.secondaryMuscles ??
+            const [],
+        equipment: _catalogExercise?.equipment ?? widget.exercise?.equipment,
+        instructions:
+            _catalogExercise?.instructions ?? widget.exercise?.instructions,
       ),
     );
   }
@@ -83,6 +116,13 @@ class _ExerciseSheetState extends State<ExerciseSheet> {
                 style: theme.textTheme.titleLarge?.copyWith(
                   fontWeight: FontWeight.w800,
                 ),
+              ),
+              const SizedBox(height: 12),
+              OutlinedButton.icon(
+                key: const Key('exercise_sheet_choose_from_catalog_button'),
+                onPressed: _openCatalog,
+                icon: const Icon(Icons.menu_book_outlined, size: 18),
+                label: const Text('Selecionar do Catálogo com Anatomia'),
               ),
               const SizedBox(height: 16),
               AppTextField(

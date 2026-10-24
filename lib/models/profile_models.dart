@@ -69,6 +69,12 @@ class Exercise {
   String reps;
   String load;
   int restSeconds;
+  String? nameEn;
+  String? primaryMuscle;
+  List<String> highActivationMuscles;
+  List<String> secondaryMuscles;
+  String? equipment;
+  String? instructions;
 
   Exercise({
     required this.name,
@@ -77,11 +83,89 @@ class Exercise {
     this.reps = '12',
     this.load = '—',
     this.restSeconds = 60,
+    this.nameEn,
+    this.primaryMuscle,
+    this.highActivationMuscles = const [],
+    this.secondaryMuscles = const [],
+    this.equipment,
+    this.instructions,
   });
+
+  String get displayPrimaryMuscle =>
+      primaryMuscle ?? (muscle.isNotEmpty ? muscle : 'Geral');
 
   String get restLabel => restSeconds >= 60 && restSeconds % 60 == 0
       ? '${restSeconds ~/ 60} min'
       : '${restSeconds}s';
+
+  Exercise copyWith({
+    String? name,
+    String? muscle,
+    int? sets,
+    String? reps,
+    String? load,
+    int? restSeconds,
+    String? nameEn,
+    String? primaryMuscle,
+    List<String>? highActivationMuscles,
+    List<String>? secondaryMuscles,
+    String? equipment,
+    String? instructions,
+  }) {
+    return Exercise(
+      name: name ?? this.name,
+      muscle: muscle ?? this.muscle,
+      sets: sets ?? this.sets,
+      reps: reps ?? this.reps,
+      load: load ?? this.load,
+      restSeconds: restSeconds ?? this.restSeconds,
+      nameEn: nameEn ?? this.nameEn,
+      primaryMuscle: primaryMuscle ?? this.primaryMuscle,
+      highActivationMuscles:
+          highActivationMuscles ?? this.highActivationMuscles,
+      secondaryMuscles: secondaryMuscles ?? this.secondaryMuscles,
+      equipment: equipment ?? this.equipment,
+      instructions: instructions ?? this.instructions,
+    );
+  }
+
+  Map<String, dynamic> toMap() => {
+        'name': name,
+        'muscle': muscle,
+        'sets': sets,
+        'reps': reps,
+        'load': load,
+        'restSeconds': restSeconds,
+        'nameEn': nameEn,
+        'primaryMuscle': primaryMuscle,
+        'highActivationMuscles': highActivationMuscles,
+        'secondaryMuscles': secondaryMuscles,
+        'equipment': equipment,
+        'instructions': instructions,
+      };
+
+  factory Exercise.fromMap(Map<String, dynamic> map) {
+    return Exercise(
+      name: map['name'] as String? ?? '',
+      muscle: map['muscle'] as String? ?? '',
+      sets: (map['sets'] as num?)?.toInt() ?? 3,
+      reps: map['reps'] as String? ?? '12',
+      load: map['load'] as String? ?? '—',
+      restSeconds: (map['restSeconds'] as num?)?.toInt() ?? 60,
+      nameEn: map['nameEn'] as String?,
+      primaryMuscle: map['primaryMuscle'] as String?,
+      highActivationMuscles: (map['highActivationMuscles'] as List?)
+              ?.map((e) => e.toString())
+              .toList() ??
+          const [],
+      secondaryMuscles: (map['secondaryMuscles'] as List?)
+              ?.map((e) => e.toString())
+              .toList() ??
+          const [],
+      equipment: map['equipment'] as String?,
+      instructions: map['instructions'] as String?,
+    );
+  }
 }
 
 class WorkoutPlan {

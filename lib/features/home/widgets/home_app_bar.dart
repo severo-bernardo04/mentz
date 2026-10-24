@@ -4,11 +4,13 @@ import 'package:flutter/material.dart';
 class HomeAppBar extends StatelessWidget implements PreferredSizeWidget {
   final VoidCallback onSettings;
   final VoidCallback onLogout;
+  final VoidCallback? onExercises;
 
   const HomeAppBar({
     super.key,
     required this.onSettings,
     required this.onLogout,
+    this.onExercises,
   });
 
   @override
@@ -30,6 +32,13 @@ class HomeAppBar extends StatelessWidget implements PreferredSizeWidget {
         ),
       ),
       actions: [
+        if (onExercises != null)
+          IconButton(
+            key: const Key('home_exercises_appbar_button'),
+            tooltip: 'Catálogo de Exercícios',
+            icon: const Icon(Icons.accessibility_new_rounded),
+            onPressed: onExercises,
+          ),
         IconButton(
           key: const Key('home_settings_appbar_button'),
           tooltip: 'Ajustes',
