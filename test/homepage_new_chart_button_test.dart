@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:mentz/screens/create_training_chart_page.dart';
-import 'package:mentz/screens/homepage.dart';
+import 'package:mentz/features/training/create_training_chart_page.dart';
+import 'package:mentz/features/home/home_page.dart';
 import 'package:mentz/services/training_chart_service.dart';
+
 
 void main() {
   late TrainingChartService service;
@@ -12,17 +13,17 @@ void main() {
     service.clearForTest();
   });
 
-  Widget createHomepageUnderTest() {
+  Widget createHomePageUnderTest() {
     return MaterialApp(
       theme: ThemeData(
         useMaterial3: true,
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.indigo),
       ),
-      home: const Homepage(userName: 'Bernardo'),
+      home: const HomePage(userName: 'Bernardo'),
     );
   }
 
-  group('Homepage "Nova Planilha" Button Tests', () {
+  group('HomePage "Nova Planilha" Button Tests', () {
     testWidgets('exibe o botão "Nova Planilha" no cabeçalho da seção e nos atalhos',
         (WidgetTester tester) async {
       tester.view.physicalSize = const Size(1080, 2400);
@@ -30,7 +31,7 @@ void main() {
       addTearDown(tester.view.resetPhysicalSize);
       addTearDown(tester.view.resetDevicePixelRatio);
 
-      await tester.pumpWidget(createHomepageUnderTest());
+      await tester.pumpWidget(createHomePageUnderTest());
       await tester.pumpAndSettle();
 
       // Botão da seção "Planilhas de Treino"
@@ -50,7 +51,7 @@ void main() {
       addTearDown(tester.view.resetPhysicalSize);
       addTearDown(tester.view.resetDevicePixelRatio);
 
-      await tester.pumpWidget(createHomepageUnderTest());
+      await tester.pumpWidget(createHomePageUnderTest());
       await tester.pumpAndSettle();
 
       // Estado inicial sem planilhas
@@ -77,23 +78,23 @@ void main() {
       await tester.pump(const Duration(milliseconds: 350));
       await tester.pumpAndSettle();
 
-      // Retornou para a Homepage
+      // Retornou para a HomePage
       expect(find.byType(CreateTrainingChartPage), findsNothing);
-      expect(find.byType(Homepage), findsOneWidget);
+      expect(find.byType(HomePage), findsOneWidget);
 
       // Confirma que a nova planilha aparece listada reativamente na tela inicial
       expect(find.text('Treino Hipertrofia A/B/C'), findsOneWidget);
       expect(find.text('Nenhuma planilha cadastrada ainda.'), findsNothing);
     });
 
-    testWidgets('o botão de voltar da CreateTrainingChartPage retorna para a Homepage',
+    testWidgets('o botão de voltar da CreateTrainingChartPage retorna para a HomePage',
         (WidgetTester tester) async {
       tester.view.physicalSize = const Size(1080, 2400);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.resetPhysicalSize);
       addTearDown(tester.view.resetDevicePixelRatio);
 
-      await tester.pumpWidget(createHomepageUnderTest());
+      await tester.pumpWidget(createHomePageUnderTest());
       await tester.pumpAndSettle();
 
       // Abre a tela pelo botão
@@ -105,9 +106,9 @@ void main() {
       await tester.tap(find.byTooltip('Voltar'));
       await tester.pumpAndSettle();
 
-      // Confirma retorno para a Homepage
+      // Confirma retorno para a HomePage
       expect(find.byType(CreateTrainingChartPage), findsNothing);
-      expect(find.byType(Homepage), findsOneWidget);
+      expect(find.byType(HomePage), findsOneWidget);
     });
   });
 }
