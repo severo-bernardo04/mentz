@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:mentz/core/routes/fade_slide_route.dart';
 import 'package:mentz/features/profile/student/widgets/exercise_tile.dart';
 import 'package:mentz/features/profile/student/widgets/training_week_row.dart';
 import 'package:mentz/features/profile/widgets/profile_tab_page.dart';
+import 'package:mentz/features/training_history/training_history_page.dart';
+import 'package:mentz/features/training_history/workout_session_detail_page.dart';
 import 'package:mentz/models/profile_models.dart';
 import 'package:mentz/widgets/info_row.dart';
 import 'package:mentz/widgets/section_card.dart';
@@ -97,28 +100,39 @@ class _WorkoutTabState extends State<WorkoutTab> {
         SectionCard(
           title: 'Treinos concluídos',
           icon: Icons.history,
+          trailing: TextButton.icon(
+            icon: const Icon(Icons.open_in_new, size: 14),
+            label: const Text('Ver todos'),
+            onPressed: () => context.pushFade(const TrainingHistoryPage()),
+          ),
           child: Column(
             children: [
               for (final h in s.history)
-                ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  dense: true,
-                  leading: CircleAvatar(
-                    radius: 18,
-                    backgroundColor: cs.primaryContainer,
-                    child: Text(
-                      h.plan,
-                      style: TextStyle(
-                        color: cs.onPrimaryContainer,
-                        fontWeight: FontWeight.w800,
+                Material(
+                  type: MaterialType.transparency,
+                  child: ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    dense: true,
+                    onTap: () => context.pushFade(
+                      WorkoutSessionDetailPage(session: h),
+                    ),
+                    leading: CircleAvatar(
+                      radius: 18,
+                      backgroundColor: cs.primaryContainer,
+                      child: Text(
+                        h.plan,
+                        style: TextStyle(
+                          color: cs.onPrimaryContainer,
+                          fontWeight: FontWeight.w800,
+                        ),
                       ),
                     ),
-                  ),
-                  title: Text('Treino ${h.plan}'),
-                  subtitle: Text('${formatDate(h.date)}  •  ${h.minutes} min'),
-                  trailing: Icon(
-                    Icons.check_circle,
-                    color: Colors.green.shade600,
+                    title: Text('Treino ${h.plan}'),
+                    subtitle: Text('${formatDate(h.date)}  •  ${h.minutes} min'),
+                    trailing: Icon(
+                      Icons.check_circle,
+                      color: Colors.green.shade600,
+                    ),
                   ),
                 ),
             ],

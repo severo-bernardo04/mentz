@@ -7,7 +7,9 @@ import '../../widgets/fade_slide_in.dart';
 import '../auth/login_page.dart';
 import '../profile/profile_page.dart';
 import '../settings/settings_page.dart';
+import '../exercises/exercises_catalog_page.dart';
 import '../training/create_training_chart_page.dart';
+import '../training_history/training_history_page.dart';
 import 'widgets/home_app_bar.dart';
 import 'widgets/role_switcher.dart';
 import 'widgets/section_header.dart';
@@ -41,6 +43,10 @@ class _HomePageState extends State<HomePage> {
 
   void _openNewChart() => context.pushFade(const CreateTrainingChartPage());
 
+  void _openHistory() => context.pushFade(const TrainingHistoryPage());
+
+  void _openExercises() => context.pushFade(const ExercisesCatalogPage());
+
   void _openSettings() => context.pushFade(const SettingsPage());
 
   void _openProfile() => context.pushFade(
@@ -63,7 +69,11 @@ class _HomePageState extends State<HomePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       extendBodyBehindAppBar: true,
-      appBar: HomeAppBar(onSettings: _openSettings, onLogout: _logout),
+      appBar: HomeAppBar(
+        onSettings: _openSettings,
+        onLogout: _logout,
+        onExercises: _openExercises,
+      ),
       body: AppBackground(
         child: SafeArea(
           child: Align(
@@ -107,7 +117,94 @@ class _HomePageState extends State<HomePage> {
                     ),
                     const SizedBox(height: 12),
                     const TrainingChartList(),
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 20),
+                    FadeSlideIn(
+                      delay: const Duration(milliseconds: 180),
+                      child: Container(
+                        margin: const EdgeInsets.only(bottom: 6),
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).colorScheme.surface.withAlpha(235),
+                          borderRadius: BorderRadius.circular(22),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withAlpha(20),
+                              blurRadius: 20,
+                              offset: const Offset(0, 8),
+                            ),
+                          ],
+                        ),
+                        child: Material(
+                          color: Colors.transparent,
+                          borderRadius: BorderRadius.circular(22),
+                          child: InkWell(
+                            key: const Key('home_exercises_banner_card'),
+                            borderRadius: BorderRadius.circular(22),
+                            onTap: _openExercises,
+                            child: Padding(
+                              padding: const EdgeInsets.all(16),
+                              child: Row(
+                                children: [
+                                  Container(
+                                    width: 42,
+                                    height: 42,
+                                    decoration: BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .primaryContainer,
+                                    ),
+                                    child: Icon(
+                                      Icons.accessibility_new_rounded,
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .onPrimaryContainer,
+                                      size: 22,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 14),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          'Catálogo & Anatomia',
+                                          style: Theme.of(context)
+                                              .textTheme
+                                              .titleSmall
+                                              ?.copyWith(
+                                                fontWeight: FontWeight.w700,
+                                              ),
+                                        ),
+                                        const SizedBox(height: 2),
+                                        Text(
+                                          'Consulte exercícios e sua ativação muscular',
+                                          style: Theme.of(context)
+                                              .textTheme
+                                              .bodySmall
+                                              ?.copyWith(
+                                                color: Theme.of(context)
+                                                    .colorScheme
+                                                    .onSurfaceVariant,
+                                              ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  Icon(
+                                    Icons.chevron_right_rounded,
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .onSurfaceVariant,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
                     const FadeSlideIn(
                       delay: Duration(milliseconds: 150),
                       child: SectionHeader(title: 'Atalhos'),
@@ -116,6 +213,7 @@ class _HomePageState extends State<HomePage> {
                     ShortcutsGrid(
                       onNewChart: _openNewChart,
                       onProfile: _openProfile,
+                      onHistory: _openHistory,
                       onSettings: _openSettings,
                     ),
                   ],
