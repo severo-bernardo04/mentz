@@ -122,7 +122,6 @@ class AuthCard extends StatelessWidget {
     final cs = Theme.of(context).colorScheme;
 
     return Container(
-      padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
         color: cs.surface.withAlpha(235),
         borderRadius: BorderRadius.circular(28),
@@ -134,7 +133,14 @@ class AuthCard extends StatelessWidget {
           ),
         ],
       ),
-      child: child,
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(28),
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: child,
+        ),
+      ),
     );
   }
 }

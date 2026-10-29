@@ -3,7 +3,14 @@ import 'package:flutter/material.dart';
 import '../models/profile_models.dart';
 import 'auth_widgets.dart';
 import 'loginpage.dart';
+
 import 'profiles/profile_page.dart';
+
+import 'create_training_chart_page.dart';
+import 'settings_page.dart';
+import '../models/training_chart.dart';
+import '../services/training_chart_service.dart';
+
 
 class Homepage extends StatefulWidget {
   /// Nome do usuário (no Firebase: FirebaseAuth.instance.currentUser?.displayName)
@@ -83,6 +90,16 @@ class _HomepageState extends State<Homepage> {
           ),
         ),
         actions: [
+          IconButton(
+            key: const Key('home_settings_appbar_button'),
+            tooltip: 'Ajustes',
+            icon: const Icon(Icons.settings_outlined),
+            onPressed: () {
+              Navigator.of(context).push(
+                fadeSlideRoute(const SettingsPage()),
+              );
+            },
+          ),
           IconButton(
             tooltip: 'Sair',
             icon: const Icon(Icons.logout_rounded),
@@ -178,6 +195,154 @@ class _HomepageState extends State<Homepage> {
                     const SizedBox(height: 28),
                     FadeSlideIn(
                       delay: const Duration(milliseconds: 150),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              'Planilhas de Treino',
+                              style: theme.textTheme.titleMedium?.copyWith(
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          FilledButton.tonalIcon(
+                            key: const Key('home_new_chart_button'),
+                            onPressed: () {
+                              Navigator.of(context).push(
+                                fadeSlideRoute(const CreateTrainingChartPage()),
+                              );
+                            },
+                            icon: const Icon(Icons.add, size: 18),
+                            label: const Text('Nova Planilha'),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    ListenableBuilder(
+                      listenable: TrainingChartService(),
+                      builder: (context, _) {
+                        final charts = TrainingChartService().charts;
+                        if (charts.isEmpty) {
+                          return FadeSlideIn(
+                            delay: const Duration(milliseconds: 200),
+                            child: AuthCard(
+                              child: Center(
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(vertical: 12),
+                                  child: Column(
+                                    children: [
+                                      Icon(
+                                        Icons.fitness_center_outlined,
+                                        size: 40,
+                                        color: cs.onSurfaceVariant,
+                                      ),
+                                      const SizedBox(height: 8),
+                                      Text(
+                                        'Nenhuma planilha cadastrada ainda.',
+                                        style: TextStyle(color: cs.onSurfaceVariant),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                          );
+                        }
+
+                        return Column(
+                          children: [
+                            for (int i = 0; i < charts.length; i++)
+                              FadeSlideIn(
+                                delay: Duration(milliseconds: 200 + (i * 60)),
+                                child: Container(
+                                  margin: const EdgeInsets.only(bottom: 12),
+                                  child: AuthCard(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Row(
+                                          children: [
+                                            Container(
+                                              padding: const EdgeInsets.all(10),
+                                              decoration: BoxDecoration(
+                                                color: cs.primaryContainer,
+                                                borderRadius: BorderRadius.circular(12),
+                                              ),
+                                              child: Icon(
+                                                Icons.table_chart_rounded,
+                                                color: cs.onPrimaryContainer,
+                                              ),
+                                            ),
+                                            const SizedBox(width: 12),
+                                            Expanded(
+                                              child: Column(
+                                                crossAxisAlignment: CrossAxisAlignment.start,
+                                                children: [
+                                                  Text(
+                                                    charts[i].name,
+                                                    style: theme.textTheme.titleSmall?.copyWith(
+                                                      fontWeight: FontWeight.w700,
+                                                    ),
+                                                  ),
+                                                  if (charts[i].description != null)
+                                                    Text(
+                                                      charts[i].description!,
+                                                      style: theme.textTheme.bodySmall?.copyWith(
+                                                        color: cs.onSurfaceVariant,
+                                                      ),
+                                                    ),
+                                                ],
+                                              ),
+                                            ),
+                                            Chip(
+                                              label: Text(
+                                                charts[i].frequencyConfig.type == WorkoutFrequencyType.fixedDays
+                                                    ? 'Dias Fixos'
+                                                    : 'Intervalo',
+                                                style: const TextStyle(fontSize: 11),
+                                              ),
+                                              backgroundColor: cs.surfaceContainerHighest,
+                                            ),
+                                          ],
+                                        ),
+                                        const SizedBox(height: 12),
+                                        Wrap(
+                                          spacing: 6,
+                                          runSpacing: 6,
+                                          children: [
+                                            for (final day in charts[i].days)
+                                              Container(
+                                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                                decoration: BoxDecoration(
+                                                  color: cs.primary.withAlpha(20),
+                                                  borderRadius: BorderRadius.circular(8),
+                                                  border: Border.all(color: cs.primary.withAlpha(50)),
+                                                ),
+                                                child: Text(
+                                                  day.name,
+                                                  style: TextStyle(
+                                                    fontSize: 11,
+                                                    fontWeight: FontWeight.w600,
+                                                    color: cs.primary,
+                                                  ),
+                                                ),
+                                              ),
+                                          ],
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                          ],
+                        );
+                      },
+                    ),
+                    const SizedBox(height: 24),
+                    FadeSlideIn(
+                      delay: const Duration(milliseconds: 150),
                       child: Text(
                         'Atalhos',
                         style: theme.textTheme.titleMedium?.copyWith(
@@ -195,32 +360,43 @@ class _HomepageState extends State<Homepage> {
                       childAspectRatio: 1.15,
                       children: [
                         FadeSlideIn(
-                          delay: Duration(milliseconds: 250),
+                          delay: const Duration(milliseconds: 250),
+                          child: _ShortcutCard(
+                            icon: Icons.add_task_rounded,
+                            label: 'Nova Planilha',
+                            onTap: () {
+                              Navigator.of(context).push(
+                                fadeSlideRoute(const CreateTrainingChartPage()),
+                              );
+                            },
+                          ),
+                        ),
+                        FadeSlideIn(
+                          delay: const Duration(milliseconds: 330),
                           child: _ShortcutCard(
                             icon: Icons.person_outline,
                             label: 'Perfil',
                             onTap: _openProfile,
                           ),
                         ),
-                        FadeSlideIn(
-                          delay: Duration(milliseconds: 330),
+                        const FadeSlideIn(
+                          delay: Duration(milliseconds: 410),
                           child: _ShortcutCard(
                             icon: Icons.explore_outlined,
                             label: 'Explorar',
                           ),
                         ),
                         FadeSlideIn(
-                          delay: Duration(milliseconds: 410),
+                          delay: const Duration(milliseconds: 490),
                           child: _ShortcutCard(
-                            icon: Icons.notifications_none_rounded,
-                            label: 'Avisos',
-                          ),
-                        ),
-                        FadeSlideIn(
-                          delay: Duration(milliseconds: 490),
-                          child: _ShortcutCard(
+                            key: const Key('home_settings_shortcut_card'),
                             icon: Icons.settings_outlined,
                             label: 'Ajustes',
+                            onTap: () {
+                              Navigator.of(context).push(
+                                fadeSlideRoute(const SettingsPage()),
+                              );
+                            },
                           ),
                         ),
                       ],
@@ -242,6 +418,7 @@ class _ShortcutCard extends StatelessWidget {
   final VoidCallback? onTap;
 
   const _ShortcutCard({
+    super.key,
     required this.icon,
     required this.label,
     this.onTap,

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'auth_widgets.dart';
 import 'registerpage.dart';
 import 'homepage.dart';
+import '../services/settings_service.dart';
 
 class Loginpage extends StatefulWidget {
   const Loginpage({super.key});
@@ -54,10 +55,14 @@ class _LoginpageState extends State<Loginpage> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final cs = theme.colorScheme;
+    return Theme(
+      data: SettingsService.authTheme,
+      child: Builder(
+        builder: (context) {
+          final theme = Theme.of(context);
+          final cs = theme.colorScheme;
 
-    return Scaffold(
+          return Scaffold(
       body: AuthBackground(
         child: SafeArea(
           child: Center(
@@ -194,6 +199,9 @@ class _LoginpageState extends State<Loginpage> {
             ),
           ),
         ),
+      ),
+    );
+        },
       ),
     );
   }
