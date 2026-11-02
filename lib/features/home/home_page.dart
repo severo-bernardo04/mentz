@@ -4,7 +4,6 @@ import '../../core/routes/fade_slide_route.dart';
 import '../../models/profile_models.dart';
 import '../../widgets/app_background.dart';
 import '../../widgets/fade_slide_in.dart';
-import '../auth/login_page.dart';
 import '../profile/profile_page.dart';
 import '../settings/settings_page.dart';
 import '../exercises/exercises_catalog_page.dart';
@@ -16,6 +15,7 @@ import 'widgets/section_header.dart';
 import 'widgets/shortcuts_grid.dart';
 import 'widgets/training_chart_list.dart';
 import 'widgets/welcome_card.dart';
+import 'package:mentz/services/auth_service.dart';
 
 class HomePage extends StatefulWidget {
   /// Nome do usuário (no Firebase: FirebaseAuth.instance.currentUser?.displayName)
@@ -57,13 +57,7 @@ class _HomePageState extends State<HomePage> {
         ),
       );
 
-  Future<void> _logout() async {
-    // TODO: await FirebaseAuth.instance.signOut();
-
-    if (!mounted) return;
-
-    context.pushFadeAndClear(const LoginPage());
-  }
+  Future<void> _logout() => AuthService().signOut();
 
   @override
   Widget build(BuildContext context) {
