@@ -1,10 +1,10 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:mentz/screens/homepage.dart';
-import 'package:mentz/screens/loginpage.dart';
-import 'package:mentz/screens/registerpage.dart';
-import 'package:mentz/screens/settings_page.dart';
+import 'package:mentz/features/home/home_page.dart';
+import 'package:mentz/features/auth/login_page.dart';
+import 'package:mentz/features/auth/register_page.dart';
+import 'package:mentz/features/settings/settings_page.dart';
 import 'package:mentz/services/settings_service.dart';
 
 void main() {
@@ -32,14 +32,14 @@ void main() {
           theme: SettingsService.lightTheme,
           darkTheme: SettingsService.darkTheme,
           themeMode: isDark ? ThemeMode.dark : ThemeMode.light,
-          home: home ?? const Homepage(userName: 'Bernardo'),
+          home: home ?? const HomePage(userName: 'Bernardo'),
         );
       },
     );
   }
 
   group('Settings & Theme Mode Tests', () {
-    testWidgets('1. Presença do botão Configurações na AppBar e nos Atalhos da Homepage',
+    testWidgets('1. Presença do botão Configurações na AppBar e nos Atalhos da HomePage',
         (WidgetTester tester) async {
       tester.view.physicalSize = const Size(1080, 2400);
       tester.view.devicePixelRatio = 1.0;
@@ -56,7 +56,7 @@ void main() {
       expect(find.byKey(const Key('home_settings_shortcut_card')), findsOneWidget);
     });
 
-    testWidgets('2. Navegação para a tela de configurações a partir da Homepage',
+    testWidgets('2. Navegação para a tela de configurações a partir da HomePage',
         (WidgetTester tester) async {
       tester.view.physicalSize = const Size(1080, 2400);
       tester.view.devicePixelRatio = 1.0;
@@ -100,12 +100,12 @@ void main() {
       expect(settingsService.isDarkMode, isTrue);
       expect(find.text('Tema escuro ativado nas telas internas'), findsOneWidget);
 
-      // Volta para a Homepage
+      // Volta para a HomePage
       await tester.tap(find.byTooltip('Voltar'));
       await tester.pumpAndSettle();
 
-      // Homepage permanece exibida sob o tema escuro
-      expect(find.byType(Homepage), findsOneWidget);
+      // HomePage permanece exibida sob o tema escuro
+      expect(find.byType(HomePage), findsOneWidget);
       final scaffold = tester.widget<Scaffold>(find.byType(Scaffold));
       expect(scaffold, isNotNull);
     });
@@ -136,11 +136,11 @@ void main() {
       addTearDown(tester.view.resetPhysicalSize);
       addTearDown(tester.view.resetDevicePixelRatio);
 
-      await tester.pumpWidget(buildAppUnderTest(home: const Loginpage()));
+      await tester.pumpWidget(buildAppUnderTest(home: const LoginPage()));
       await tester.pumpAndSettle();
 
-      // Confirma que Loginpage renderiza com authTheme
-      expect(find.byType(Loginpage), findsOneWidget);
+      // Confirma que LoginPage renderiza com authTheme
+      expect(find.byType(LoginPage), findsOneWidget);
       expect(find.text('Mentz'), findsWidgets);
       expect(find.text('Cadastre-se'), findsOneWidget);
 
@@ -148,14 +148,14 @@ void main() {
       await settingsService.setThemeMode(AppThemeMode.dark);
       await tester.pumpAndSettle();
 
-      // Loginpage continua exibida com authTheme (tema claro protegido)
-      expect(find.byType(Loginpage), findsOneWidget);
+      // LoginPage continua exibida com authTheme (tema claro protegido)
+      expect(find.byType(LoginPage), findsOneWidget);
 
-      // Testa Registerpage também diretamente sob modo escuro
-      await tester.pumpWidget(buildAppUnderTest(home: const Registerpage()));
+      // Testa RegisterPage também diretamente sob modo escuro
+      await tester.pumpWidget(buildAppUnderTest(home: const RegisterPage()));
       await tester.pumpAndSettle();
 
-      expect(find.byType(Registerpage), findsOneWidget);
+      expect(find.byType(RegisterPage), findsOneWidget);
       expect(find.text('Criar conta'), findsOneWidget);
     });
   });

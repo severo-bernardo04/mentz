@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mentz/models/training_chart.dart';
-import 'package:mentz/screens/create_training_chart_page.dart';
+import 'package:mentz/features/training/create_training_chart_page.dart';
 import 'package:mentz/services/training_chart_service.dart';
 
 void main() {
