@@ -3,18 +3,14 @@ import 'package:flutter/material.dart';
 import '../../../widgets/fade_slide_in.dart';
 import 'shortcut_card.dart';
 
-/// Grade 2x2 de atalhos da home.
+/// Atalhos rápidos da home: Nova Planilha e Histórico.
 class ShortcutsGrid extends StatelessWidget {
   final VoidCallback onNewChart;
-  final VoidCallback onProfile;
-  final VoidCallback onSettings;
   final VoidCallback? onHistory;
 
   const ShortcutsGrid({
     super.key,
     required this.onNewChart,
-    required this.onProfile,
-    required this.onSettings,
     this.onHistory,
   });
 
@@ -22,14 +18,10 @@ class ShortcutsGrid extends StatelessWidget {
   Widget build(BuildContext context) {
     final cards = [
       ShortcutCard(
+        key: const Key('home_new_chart_shortcut_card'),
         icon: Icons.add_task_rounded,
         label: 'Nova Planilha',
         onTap: onNewChart,
-      ),
-      ShortcutCard(
-        icon: Icons.person_outline,
-        label: 'Perfil',
-        onTap: onProfile,
       ),
       ShortcutCard(
         key: const Key('home_history_shortcut_card'),
@@ -37,27 +29,22 @@ class ShortcutsGrid extends StatelessWidget {
         label: 'Histórico',
         onTap: onHistory,
       ),
-      ShortcutCard(
-        key: const Key('home_settings_shortcut_card'),
-        icon: Icons.settings_outlined,
-        label: 'Ajustes',
-        onTap: onSettings,
-      ),
     ];
 
-    return GridView.count(
-      crossAxisCount: 2,
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      mainAxisSpacing: 16,
-      crossAxisSpacing: 16,
-      childAspectRatio: 1.15,
+    return Row(
       children: [
-        for (var i = 0; i < cards.length; i++)
-          FadeSlideIn(
-            delay: Duration(milliseconds: 250 + i * 80),
-            child: cards[i],
+        for (var i = 0; i < cards.length; i++) ...[
+          if (i > 0) const SizedBox(width: 14),
+          Expanded(
+            child: FadeSlideIn(
+              delay: Duration(milliseconds: 250 + i * 80),
+              child: SizedBox(
+                height: 104,
+                child: cards[i],
+              ),
+            ),
           ),
+        ],
       ],
     );
   }

@@ -10,7 +10,6 @@ import '../exercises/exercises_catalog_page.dart';
 import '../training/create_training_chart_page.dart';
 import '../training_history/training_history_page.dart';
 import 'widgets/home_app_bar.dart';
-import 'widgets/role_switcher.dart';
 import 'widgets/section_header.dart';
 import 'widgets/shortcuts_grid.dart';
 import 'widgets/training_chart_list.dart';
@@ -24,7 +23,7 @@ class HomePage extends StatefulWidget {
   /// E-mail do usuário (no Firebase: FirebaseAuth.instance.currentUser?.email)
   final String? userEmail;
 
-  /// Papel do usuário. TODO: vir do backend (ex: claim/doc do usuário).
+  /// Papel do usuário vindo do backend/Firestore.
   final UserRole role;
 
   const HomePage({
@@ -39,8 +38,6 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  late UserRole _role = widget.role;
-
   void _openNewChart() => context.pushFade(const CreateTrainingChartPage());
 
   void _openHistory() => context.pushFade(const TrainingHistoryPage());
@@ -51,7 +48,7 @@ class _HomePageState extends State<HomePage> {
 
   void _openProfile() => context.pushFade(
         ProfilePage(
-          role: _role,
+          role: widget.role,
           userName: widget.userName,
           userEmail: widget.userEmail,
         ),
@@ -66,7 +63,6 @@ class _HomePageState extends State<HomePage> {
       appBar: HomeAppBar(
         onSettings: _openSettings,
         onLogout: _logout,
-        onExercises: _openExercises,
       ),
       body: AppBackground(
         child: SafeArea(
@@ -88,25 +84,14 @@ class _HomePageState extends State<HomePage> {
                       child: WelcomeCard(
                         userName: widget.userName,
                         userEmail: widget.userEmail,
+                        onTap: _openProfile,
                       ),
                     ),
-                    const SizedBox(height: 16),
-                    // TODO: remover — apenas para testar os dois perfis.
-                    RoleSwitcher(
-                      selected: _role,
-                      onChanged: (role) => setState(() => _role = role),
-                    ),
                     const SizedBox(height: 28),
-                    FadeSlideIn(
-                      delay: const Duration(milliseconds: 150),
+                    const FadeSlideIn(
+                      delay: Duration(milliseconds: 150),
                       child: SectionHeader(
                         title: 'Planilhas de Treino',
-                        trailing: FilledButton.tonalIcon(
-                          key: const Key('home_new_chart_button'),
-                          onPressed: _openNewChart,
-                          icon: const Icon(Icons.add, size: 18),
-                          label: const Text('Nova Planilha'),
-                        ),
                       ),
                     ),
                     const SizedBox(height: 12),
@@ -206,9 +191,7 @@ class _HomePageState extends State<HomePage> {
                     const SizedBox(height: 12),
                     ShortcutsGrid(
                       onNewChart: _openNewChart,
-                      onProfile: _openProfile,
                       onHistory: _openHistory,
-                      onSettings: _openSettings,
                     ),
                   ],
                 ),
