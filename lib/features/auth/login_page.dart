@@ -5,11 +5,12 @@ import '../../core/utils/validators.dart';
 import '../../widgets/app_button.dart';
 import '../../widgets/app_text_field.dart';
 import '../../widgets/staggered_column.dart';
-import '../home/home_page.dart';
 import 'register_page.dart';
 import 'widgets/auth_footer_link.dart';
 import 'widgets/auth_header.dart';
 import 'widgets/auth_scaffold.dart';
+import '/core/utils/snackbars.dart';
+import '/services/auth_service.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -32,22 +33,21 @@ class _LoginPageState extends State<LoginPage> {
     super.dispose();
   }
 
+  final _auth = AuthService();
+
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
 
     setState(() => _loading = true);
 
-    // TODO: trocar pela autenticação real (ex: Firebase Auth)
-    await Future.delayed(const Duration(seconds: 1));
-
-    if (!mounted) return;
-
-    setState(() => _loading = false);
-
-    Navigator.of(context).pushAndRemoveUntil(
-      fadeSlideRoute(HomePage(userEmail: _emailCtrl.text.trim())),
-      (_) => false,
-    );
+    try {
+      await _auth.signIn(email: _emailCtrl.text, password: _passCtrl.text);
+      // Sem navegação aqui: o AuthGate troca para a Home sozinho.
+    } on AuthFailure catch (e) {
+      if (mounted) context.showSnack(e.message);
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
   }
 
   @override
