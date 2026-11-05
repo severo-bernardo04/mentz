@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../../../models/profile_models.dart';
 
 /// Tabela em formato de planilha (estilo Excel) para comparar o histórico de execuções de um treino.
@@ -17,6 +18,7 @@ class SpreadsheetDataTable extends StatelessWidget {
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
 
+    // Estado vazio com ícone e textos maiores
     if (sessions.isEmpty) {
       return Center(
         child: Padding(
@@ -24,11 +26,24 @@ class SpreadsheetDataTable extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.table_chart_outlined, size: 48, color: cs.onSurfaceVariant),
-              const SizedBox(height: 12),
+              Icon(
+                Icons.table_chart_outlined,
+                size: 64,
+                color: cs.onSurfaceVariant.withAlpha(150),
+              ),
+              const SizedBox(height: 16),
               Text(
                 'Nenhuma execução registrada para o $dayName.',
-                style: TextStyle(color: cs.onSurfaceVariant),
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontSize: 17,
+                  fontWeight: FontWeight.w700,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 6),
+              Text(
+                'Conclua este treino para acompanhar sua evolução aqui.',
+                style: TextStyle(fontSize: 15, color: cs.onSurfaceVariant),
                 textAlign: TextAlign.center,
               ),
             ],
@@ -51,60 +66,68 @@ class SpreadsheetDataTable extends StatelessWidget {
       }
     }
 
+    final headerStyle = TextStyle(
+      fontSize: 18,
+      fontWeight: FontWeight.w800,
+      color: cs.onPrimaryContainer,
+    );
+
+    // Rolagem vertical + horizontal: a tabela cresce em linhas (exercícios)
+    // e em colunas (datas) sem estourar a área disponível da tela.
+    // Sem largura mínima: a tabela tem só a largura do conteúdo, então
+    // nenhuma coluna recebe espaço sobrando (ex.: treino com uma única execução).
     return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(minWidth: 500),
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
         child: Container(
           decoration: BoxDecoration(
             color: cs.surface,
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(18),
             border: Border.all(color: cs.outlineVariant.withAlpha(120)),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withAlpha(18),
+                blurRadius: 18,
+                offset: const Offset(0, 6),
+              ),
+            ],
           ),
           child: ClipRRect(
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(18),
             child: DataTable(
               headingRowColor: WidgetStatePropertyAll(cs.primaryContainer),
-              horizontalMargin: 16,
-              columnSpacing: 24,
-              dataRowMinHeight: 70,
-              dataRowMaxHeight: 120,
+              headingRowHeight: 68,
+              // Margem horizontal igual em todas as células: 14 nas bordas da tabela
+              // e 14 de cada lado das linhas divisórias (columnSpacing = 2 × horizontalMargin)
+              horizontalMargin: 14,
+              columnSpacing: 28,
+              // Altura da linha acompanha o conteúdo (nº de séries), sem sobra em cima e embaixo
+              dataRowMinHeight: 56,
+              dataRowMaxHeight: double.infinity,
               border: TableBorder(
                 horizontalInside: BorderSide(
-                  color: cs.outlineVariant.withAlpha(60),
+                  color: cs.outlineVariant.withAlpha(80),
                 ),
                 verticalInside: BorderSide(
-                  color: cs.outlineVariant.withAlpha(60),
+                  color: cs.outlineVariant.withAlpha(80),
                 ),
               ),
               columns: [
-                DataColumn(
-                  label: Text(
-                    'Exercício',
-                    style: TextStyle(
-                      fontWeight: FontWeight.w800,
-                      color: cs.onPrimaryContainer,
-                    ),
-                  ),
-                ),
+                DataColumn(label: Text('Exercício', style: headerStyle)),
                 for (final s in chronologicalSessions)
                   DataColumn(
                     label: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          formatDate(s.date),
-                          style: TextStyle(
-                            fontWeight: FontWeight.w800,
-                            color: cs.onPrimaryContainer,
-                          ),
-                        ),
+                        Text(formatDate(s.date), style: headerStyle),
+                        const SizedBox(height: 2),
                         Text(
                           '${s.minutes} min  •  ${s.weekdayName.substring(0, 3)}',
                           style: TextStyle(
-                            fontSize: 10,
-                            color: cs.onPrimaryContainer.withAlpha(200),
+                            fontSize: 15,
+                            fontWeight: FontWeight.w500,
+                            color: cs.onPrimaryContainer.withAlpha(210),
                           ),
                         ),
                       ],
@@ -112,17 +135,27 @@ class SpreadsheetDataTable extends StatelessWidget {
                   ),
               ],
               rows: [
-                for (final name in exerciseNames)
+                for (var i = 0; i < exerciseNames.length; i++)
                   DataRow(
+                    // Linhas zebradas para facilitar o acompanhamento horizontal
+                    color: WidgetStatePropertyAll(
+                      i.isOdd
+                          ? cs.surfaceContainerHighest.withAlpha(70)
+                          : Colors.transparent,
+                    ),
                     cells: [
                       DataCell(
-                        SizedBox(
-                          width: 140,
+                        // Largura se adapta ao nome: nomes curtos encolhem a coluna,
+                        // nomes longos quebram linha a partir de 170
+                        ConstrainedBox(
+                          constraints: const BoxConstraints(maxWidth: 170),
                           child: Text(
-                            name,
+                            exerciseNames[i],
+                            // Mede pela linha mais longa, sem ocupar os 170 inteiros ao quebrar
+                            textWidthBasis: TextWidthBasis.longestLine,
                             style: const TextStyle(
                               fontWeight: FontWeight.w700,
-                              fontSize: 13,
+                              fontSize: 16,
                             ),
                           ),
                         ),
@@ -132,7 +165,7 @@ class SpreadsheetDataTable extends StatelessWidget {
                           _buildExerciseExecutionCell(
                             context,
                             s.executedExercises.firstWhere(
-                              (e) => e.name == name,
+                              (e) => e.name == exerciseNames[i],
                               orElse: () => const ExecutedExercise(name: ''),
                             ),
                           ),
@@ -147,6 +180,8 @@ class SpreadsheetDataTable extends StatelessWidget {
     );
   }
 
+  /// Célula de um exercício em uma data: lista as séries (S1, S2...) com carga × reps,
+  /// ou uma etiqueta de "Não concluído", ou um traço quando o exercício não foi feito.
   Widget _buildExerciseExecutionCell(
     BuildContext context,
     ExecutedExercise exercise,
@@ -154,7 +189,10 @@ class SpreadsheetDataTable extends StatelessWidget {
     final cs = Theme.of(context).colorScheme;
 
     if (exercise.name.isEmpty) {
-      return Text('—', style: TextStyle(color: cs.onSurfaceVariant));
+      return Text(
+        '—',
+        style: TextStyle(fontSize: 18, color: cs.onSurfaceVariant),
+      );
     }
 
     if (!exercise.completed) {
@@ -162,72 +200,87 @@ class SpreadsheetDataTable extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.center,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-            decoration: BoxDecoration(
-              color: Colors.deepOrange.withAlpha(30),
-              borderRadius: BorderRadius.circular(4),
-            ),
-            child: const Text(
-              'Não concluído',
-              style: TextStyle(
-                color: Colors.deepOrange,
-                fontSize: 10,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          ),
-          if (exercise.sets.isNotEmpty)
+          _buildTag('Não concluído', Colors.deepOrange),
+          if (exercise.sets.isNotEmpty) ...[
+            const SizedBox(height: 6),
             Text(
               '${exercise.sets.first.load} × ${exercise.sets.first.reps}',
-              style: const TextStyle(fontSize: 11),
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
             ),
+          ],
         ],
       );
     }
 
-    return SingleChildScrollView(
+    // Coluna com mainAxisSize.min: ocupa só a altura das séries, com um respiro pequeno
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         mainAxisAlignment: MainAxisAlignment.center,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           for (final set in exercise.sets)
             Padding(
-              padding: const EdgeInsets.symmetric(vertical: 1.5),
+              padding: const EdgeInsets.symmetric(vertical: 3),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text(
-                    'S${set.setNumber}: ',
-                    style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w700,
-                      color: cs.primary,
+                  // Número da série em um "badge" colorido
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 6,
+                      vertical: 1,
+                    ),
+                    decoration: BoxDecoration(
+                      color: cs.primary.withAlpha(25),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Text(
+                      'S${set.setNumber}',
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w800,
+                        color: cs.primary,
+                      ),
                     ),
                   ),
+                  const SizedBox(width: 8),
                   Text(
                     '${set.load} × ${set.reps}',
                     style: const TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w500,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700,
                     ),
                   ),
                   if (set.type == SetType.dropSet)
                     Padding(
-                      padding: const EdgeInsets.only(left: 4),
-                      child: Text(
-                        'drop',
-                        style: TextStyle(
-                          fontSize: 9,
-                          color: Colors.purple.shade700,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
+                      padding: const EdgeInsets.only(left: 6),
+                      child: _buildTag('drop', Colors.purple.shade700),
                     ),
                 ],
               ),
             ),
         ],
+      ),
+    );
+  }
+
+  /// Etiqueta pequena e arredondada usada para "Não concluído" e "drop".
+  Widget _buildTag(String label, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: color.withAlpha(30),
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          color: color,
+          fontSize: 12,
+          fontWeight: FontWeight.w800,
+        ),
       ),
     );
   }
