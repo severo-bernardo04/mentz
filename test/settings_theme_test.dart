@@ -53,7 +53,7 @@ void main() {
       expect(find.byKey(const Key('home_settings_appbar_button')), findsOneWidget);
 
       // Card de atalho rápido 'Ajustes'
-      expect(find.byKey(const Key('home_settings_shortcut_card')), findsOneWidget);
+      expect(find.byKey(const Key('home_settings_shortcut_card')), findsNothing);
     });
 
     testWidgets('2. Navegação para a tela de configurações a partir da HomePage',

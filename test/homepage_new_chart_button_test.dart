@@ -4,7 +4,6 @@ import 'package:mentz/features/training/create_training_chart_page.dart';
 import 'package:mentz/features/home/home_page.dart';
 import 'package:mentz/services/training_chart_service.dart';
 
-
 void main() {
   late TrainingChartService service;
 
@@ -24,7 +23,7 @@ void main() {
   }
 
   group('HomePage "Nova Planilha" Button Tests', () {
-    testWidgets('exibe o botão "Nova Planilha" no cabeçalho da seção e nos atalhos',
+    testWidgets('exibe o atalho "Nova Planilha" nos atalhos rápidos',
         (WidgetTester tester) async {
       tester.view.physicalSize = const Size(1080, 2400);
       tester.view.devicePixelRatio = 1.0;
@@ -34,17 +33,13 @@ void main() {
       await tester.pumpWidget(createHomePageUnderTest());
       await tester.pumpAndSettle();
 
-      // Botão da seção "Planilhas de Treino"
-      expect(find.byKey(const Key('home_new_chart_button')), findsOneWidget);
-
       // Atalho rápido "Nova Planilha" no grid de atalhos
-      final newChartTexts = find.text('Nova Planilha');
-      // Deve existir exatamente 2 entradas funcionais (seção e atalhos rápidos)
-      expect(newChartTexts, findsNWidgets(2));
+      expect(find.byKey(const Key('home_new_chart_shortcut_card')), findsOneWidget);
+      expect(find.text('Nova Planilha'), findsOneWidget);
     });
 
     testWidgets(
-        'o clique no botão "Nova Planilha" da seção abre CreateTrainingChartPage e atualiza a listagem ao salvar',
+        'o clique no atalho "Nova Planilha" abre CreateTrainingChartPage e atualiza a listagem ao salvar',
         (WidgetTester tester) async {
       tester.view.physicalSize = const Size(1080, 2400);
       tester.view.devicePixelRatio = 1.0;
@@ -57,8 +52,8 @@ void main() {
       // Estado inicial sem planilhas
       expect(find.text('Nenhuma planilha cadastrada ainda.'), findsOneWidget);
 
-      // Clica no botão "Nova Planilha"
-      await tester.tap(find.byKey(const Key('home_new_chart_button')));
+      // Clica no atalho "Nova Planilha"
+      await tester.tap(find.byKey(const Key('home_new_chart_shortcut_card')));
       await tester.pumpAndSettle();
 
       // Verifica que abriu a tela CreateTrainingChartPage
@@ -97,8 +92,8 @@ void main() {
       await tester.pumpWidget(createHomePageUnderTest());
       await tester.pumpAndSettle();
 
-      // Abre a tela pelo botão
-      await tester.tap(find.byKey(const Key('home_new_chart_button')));
+      // Abre a tela pelo atalho
+      await tester.tap(find.byKey(const Key('home_new_chart_shortcut_card')));
       await tester.pumpAndSettle();
       expect(find.byType(CreateTrainingChartPage), findsOneWidget);
 
