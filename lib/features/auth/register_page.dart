@@ -1,16 +1,16 @@
 import 'package:flutter/material.dart';
 
-import '../../core/routes/fade_slide_route.dart';
 import '../../core/utils/validators.dart';
 import '../../widgets/app_button.dart';
 import '../../widgets/app_text_field.dart';
 import '../../widgets/staggered_column.dart';
-import '../home/home_page.dart';
 import 'widgets/auth_footer_link.dart';
 import 'widgets/auth_header.dart';
 import 'widgets/auth_scaffold.dart';
 import 'widgets/password_strength_bar.dart';
 import 'widgets/terms_checkbox_field.dart';
+import 'package:mentz/core/utils/snackbars.dart';
+import 'package:mentz/services/auth_service.dart';
 
 class RegisterPage extends StatefulWidget {
   const RegisterPage({super.key});
@@ -37,23 +37,28 @@ class _RegisterPageState extends State<RegisterPage> {
     super.dispose();
   }
 
+  final _auth = AuthService();
+
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
 
     setState(() => _loading = true);
 
-    // TODO: trocar pelo cadastro real (ex: Firebase Auth)
-    await Future.delayed(const Duration(seconds: 1));
+    try {
+      await _auth.register(
+        name: _nameCtrl.text,
+        email: _emailCtrl.text,
+        password: _passCtrl.text,
+      );
+      if (!mounted) return;
 
-    if (!mounted) return;
-
-    setState(() => _loading = false);
-
-    // Limpa a pilha (login + cadastro) e abre a home.
-    Navigator.of(context).pushAndRemoveUntil(
-      fadeSlideRoute(HomePage(userEmail: _emailCtrl.text.trim())),
-      (_) => false,
-    );
+      // O AuthGate já colocou a Home na raiz; fecha a tela de cadastro.
+      Navigator.of(context).popUntil((route) => route.isFirst);
+    } on AuthFailure catch (e) {
+      if (mounted) context.showSnack(e.message);
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
   }
 
   @override
