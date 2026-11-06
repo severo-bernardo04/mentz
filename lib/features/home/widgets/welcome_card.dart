@@ -3,11 +3,18 @@ import 'package:flutter/material.dart';
 import '../../../widgets/app_card.dart';
 
 /// Cartão de boas-vindas com avatar, nome e e-mail.
+/// Ao clicar, navega para o perfil do usuário.
 class WelcomeCard extends StatelessWidget {
   final String? userName;
   final String? userEmail;
+  final VoidCallback? onTap;
 
-  const WelcomeCard({super.key, this.userName, this.userEmail});
+  const WelcomeCard({
+    super.key,
+    this.userName,
+    this.userEmail,
+    this.onTap,
+  });
 
   String get _displayName {
     final name = userName?.trim() ?? '';
@@ -26,6 +33,7 @@ class WelcomeCard extends StatelessWidget {
     final name = _displayName;
 
     return AppCard(
+      onTap: onTap,
       child: Row(
         children: [
           CircleAvatar(
@@ -65,6 +73,11 @@ class WelcomeCard extends StatelessWidget {
               ],
             ),
           ),
+          if (onTap != null)
+            Icon(
+              Icons.chevron_right_rounded,
+              color: cs.onSurfaceVariant,
+            ),
         ],
       ),
     );
