@@ -8,6 +8,7 @@ import 'package:mentz/features/profile/widgets/profile_header.dart';
 import 'package:mentz/features/profile/widgets/profile_scaffold.dart';
 import 'package:mentz/models/profile_models.dart';
 import 'package:mentz/widgets/status_chip.dart';
+import 'package:mentz/services/photo_service.dart';
 
 /// Perfil do aluno.
 ///
@@ -31,9 +32,7 @@ class StudentProfilePage extends StatelessWidget {
         name: student.name,
         subtitle: student.plan,
         photoUrl: student.photoUrl,
-        // TODO: escolher foto (image_picker) e enviar ao Storage
-        onEditPhoto:
-            isOwnerView ? () => context.showSnack('Troca de foto em breve.') : null,
+        onEditPhoto: isOwnerView ? () => _changePhoto(context) : null,
         chips: [
           StatusChip.active(
             student.enrollmentActive,
@@ -56,5 +55,16 @@ class StudentProfilePage extends StatelessWidget {
         ProgressTab(student: student),
       ],
     );
+  }
+
+  Future<void> _changePhoto(BuildContext context) async {
+    try {
+      final ok = await PhotoService().pickAndSave();
+      if (ok && context.mounted) context.showSnack('Foto atualizada.');
+    } catch (_) {
+      if (context.mounted) {
+        context.showSnack('Não foi possível enviar a foto.');
+      }
+    }
   }
 }

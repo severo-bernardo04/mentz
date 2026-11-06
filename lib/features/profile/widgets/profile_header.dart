@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:mentz/widgets/app_card.dart';
+import 'dart:convert';
 
 /// Cabeçalho do perfil: avatar, nome, subtítulo e chips.
 class ProfileHeader extends StatelessWidget {
@@ -85,6 +86,17 @@ class _ProfileAvatar extends StatelessWidget {
     return (parts.first[0] + parts.last[0]).toUpperCase();
   }
 
+  ImageProvider? get _image {
+    final p = photoUrl;
+    if (p == null || p.isEmpty) return null;
+    if (p.startsWith('http')) return NetworkImage(p);
+    try {
+      return MemoryImage(base64Decode(p));
+    } catch (_) {
+      return null;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
@@ -95,8 +107,8 @@ class _ProfileAvatar extends StatelessWidget {
         CircleAvatar(
           radius: 38,
           backgroundColor: cs.primary,
-          backgroundImage: photoUrl != null ? NetworkImage(photoUrl!) : null,
-          child: photoUrl == null
+          backgroundImage: _image,
+          child: _image == null
               ? Text(
                   _initials,
                   style: TextStyle(

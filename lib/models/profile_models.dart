@@ -481,7 +481,7 @@ class StudentProfile {
   int get doneThisWeek =>
       history.where((h) => DateTime.now().difference(h.date).inDays < 7).length;
 
-  static StudentProfile sample({String? name, String? email}) {
+  static StudentProfile sample({String? name, String? email, String? photo}) {
     return StudentProfile(
       name: (name != null && name.trim().isNotEmpty)
           ? name.trim()
@@ -490,6 +490,7 @@ class StudentProfile {
           ? email
           : 'bernardo@email.com',
       phone: '(55) 99999-1234',
+      photoUrl: photo,
       birthDate: DateTime(1999, 4, 12),
       sex: 'Masculino',
       enrollmentDate: DateTime(2025, 3, 10),
@@ -784,7 +785,7 @@ class TrainerProfile {
     required this.newStudents,
   });
 
-  static TrainerProfile sample({String? name, String? email}) {
+  static TrainerProfile sample({String? name, String? email, String? photo}) {
     return TrainerProfile(
       name: (name != null && name.trim().isNotEmpty)
           ? name.trim()
@@ -792,6 +793,7 @@ class TrainerProfile {
       email: (email != null && email.isNotEmpty)
           ? email
           : 'carla.menezes@academia.com',
+      photoUrl: photo,
       phone: '(55) 98888-4321',
       role: TrainerRole.personal,
       cref: '012345-G/RS',
