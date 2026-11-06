@@ -74,105 +74,117 @@ class SpreadsheetDataTable extends StatelessWidget {
 
     // Rolagem vertical + horizontal: a tabela cresce em linhas (exercícios)
     // e em colunas (datas) sem estourar a área disponível da tela.
-    // Sem largura mínima: a tabela tem só a largura do conteúdo, então
-    // nenhuma coluna recebe espaço sobrando (ex.: treino com uma única execução).
-    return SingleChildScrollView(
-      child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: Container(
-          decoration: BoxDecoration(
-            color: cs.surface,
-            borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: cs.outlineVariant.withAlpha(120)),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withAlpha(18),
-                blurRadius: 18,
-                offset: const Offset(0, 6),
+    // LayoutBuilder lê a largura disponível: a tabela ocupa no mínimo a tela inteira
+    // e, se tiver mais datas do que cabem, fica mais larga e rola para o lado.
+    return LayoutBuilder(
+      builder: (context, constraints) => SingleChildScrollView(
+        child: SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: ConstrainedBox(
+            constraints: BoxConstraints(minWidth: constraints.maxWidth),
+            child: Container(
+              decoration: BoxDecoration(
+                color: cs.surface,
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(color: cs.outlineVariant.withAlpha(120)),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withAlpha(18),
+                    blurRadius: 18,
+                    offset: const Offset(0, 6),
+                  ),
+                ],
               ),
-            ],
-          ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(18),
-            child: DataTable(
-              headingRowColor: WidgetStatePropertyAll(cs.primaryContainer),
-              headingRowHeight: 68,
-              // Margem horizontal igual em todas as células: 14 nas bordas da tabela
-              // e 14 de cada lado das linhas divisórias (columnSpacing = 2 × horizontalMargin)
-              horizontalMargin: 14,
-              columnSpacing: 28,
-              // Altura da linha acompanha o conteúdo (nº de séries), sem sobra em cima e embaixo
-              dataRowMinHeight: 56,
-              dataRowMaxHeight: double.infinity,
-              border: TableBorder(
-                horizontalInside: BorderSide(
-                  color: cs.outlineVariant.withAlpha(80),
-                ),
-                verticalInside: BorderSide(
-                  color: cs.outlineVariant.withAlpha(80),
-                ),
-              ),
-              columns: [
-                DataColumn(label: Text('Exercício', style: headerStyle)),
-                for (final s in chronologicalSessions)
-                  DataColumn(
-                    label: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(formatDate(s.date), style: headerStyle),
-                        const SizedBox(height: 2),
-                        Text(
-                          '${s.minutes} min  •  ${s.weekdayName.substring(0, 3)}',
-                          style: TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w500,
-                            color: cs.onPrimaryContainer.withAlpha(210),
-                          ),
-                        ),
-                      ],
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(18),
+                child: DataTable(
+                  headingRowColor: WidgetStatePropertyAll(cs.primaryContainer),
+                  headingRowHeight: 68,
+                  // Margem horizontal igual em todas as células: 14 nas bordas da tabela
+                  // e 14 de cada lado das linhas divisórias (columnSpacing = 2 × horizontalMargin)
+                  horizontalMargin: 14,
+                  columnSpacing: 28,
+                  // Altura da linha acompanha o conteúdo (nº de séries), sem sobra em cima e embaixo
+                  dataRowMinHeight: 56,
+                  dataRowMaxHeight: double.infinity,
+                  border: TableBorder(
+                    horizontalInside: BorderSide(
+                      color: cs.outlineVariant.withAlpha(80),
+                    ),
+                    verticalInside: BorderSide(
+                      color: cs.outlineVariant.withAlpha(80),
                     ),
                   ),
-              ],
-              rows: [
-                for (var i = 0; i < exerciseNames.length; i++)
-                  DataRow(
-                    // Linhas zebradas para facilitar o acompanhamento horizontal
-                    color: WidgetStatePropertyAll(
-                      i.isOdd
-                          ? cs.surfaceContainerHighest.withAlpha(70)
-                          : Colors.transparent,
+                  columns: [
+                    // flex igual em todas as colunas: a largura que sobra na tela é
+                    // dividida por igual, sem concentrar o espaço em uma coluna só
+                    DataColumn(
+                      columnWidth: const IntrinsicColumnWidth(flex: 1),
+                      label: Text('Exercício', style: headerStyle),
                     ),
-                    cells: [
-                      DataCell(
-                        // Largura se adapta ao nome: nomes curtos encolhem a coluna,
-                        // nomes longos quebram linha a partir de 170
-                        ConstrainedBox(
-                          constraints: const BoxConstraints(maxWidth: 170),
-                          child: Text(
-                            exerciseNames[i],
-                            // Mede pela linha mais longa, sem ocupar os 170 inteiros ao quebrar
-                            textWidthBasis: TextWidthBasis.longestLine,
-                            style: const TextStyle(
-                              fontWeight: FontWeight.w700,
-                              fontSize: 16,
+                    for (final s in chronologicalSessions)
+                      DataColumn(
+                        columnWidth: const IntrinsicColumnWidth(flex: 1),
+                        label: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(formatDate(s.date), style: headerStyle),
+                            const SizedBox(height: 2),
+                            Text(
+                              '${s.minutes} min  •  ${s.weekdayName.substring(0, 3)}',
+                              style: TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w500,
+                                color: cs.onPrimaryContainer.withAlpha(210),
+                              ),
                             ),
-                          ),
+                          ],
                         ),
                       ),
-                      for (final s in chronologicalSessions)
-                        DataCell(
-                          _buildExerciseExecutionCell(
-                            context,
-                            s.executedExercises.firstWhere(
-                              (e) => e.name == exerciseNames[i],
-                              orElse: () => const ExecutedExercise(name: ''),
+                  ],
+                  rows: [
+                    for (var i = 0; i < exerciseNames.length; i++)
+                      DataRow(
+                        // Linhas zebradas para facilitar o acompanhamento horizontal
+                        color: WidgetStatePropertyAll(
+                          i.isOdd
+                              ? cs.surfaceContainerHighest.withAlpha(70)
+                              : Colors.transparent,
+                        ),
+                        cells: [
+                          DataCell(
+                            // Largura se adapta ao nome: nomes curtos encolhem a coluna,
+                            // nomes longos quebram linha a partir de 170
+                            ConstrainedBox(
+                              constraints: const BoxConstraints(maxWidth: 170),
+                              child: Text(
+                                exerciseNames[i],
+                                // Mede pela linha mais longa, sem ocupar os 170 inteiros ao quebrar
+                                textWidthBasis: TextWidthBasis.longestLine,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 16,
+                                ),
+                              ),
                             ),
                           ),
-                        ),
-                    ],
-                  ),
-              ],
+                          for (final s in chronologicalSessions)
+                            DataCell(
+                              _buildExerciseExecutionCell(
+                                context,
+                                s.executedExercises.firstWhere(
+                                  (e) => e.name == exerciseNames[i],
+                                  orElse: () =>
+                                      const ExecutedExercise(name: ''),
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                  ],
+                ),
+              ),
             ),
           ),
         ),
