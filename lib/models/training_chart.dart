@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import 'profile_models.dart';
 
@@ -49,20 +50,27 @@ class TrainingDay {
       'id': id,
       'name': name,
       'order': order,
-      'focusOrDescription': focusOrDescription,
+      if (focusOrDescription != null) 'focusOrDescription': focusOrDescription,
       'exercises': exercises.map((e) => e.toMap()).toList(),
     };
   }
 
-  factory TrainingDay.fromMap(Map<String, dynamic> map) {
+  factory TrainingDay.fromMap(
+    Map<String, dynamic> map, {
+    required ExerciseLookup findExercise,
+  }) {
     return TrainingDay(
       id: map['id'] as String,
       name: map['name'] as String,
       order: (map['order'] as num?)?.toInt() ?? 0,
       focusOrDescription: map['focusOrDescription'] as String?,
       exercises: (map['exercises'] as List?)
-              ?.map((e) =>
-                  WorkoutExercise.fromMap(Map<String, dynamic>.from(e as Map)))
+              ?.map(
+                (e) => WorkoutExercise.fromMap(
+                  Map<String, dynamic>.from(e as Map),
+                  findExercise: findExercise,
+                ),
+              )
               .toList() ??
           const [],
     );
@@ -150,6 +158,10 @@ class WorkoutFrequencyConfig {
 
 /// Planilha de treino (`chart`).
 class TrainingChart {
+  /// Limites também aplicados pelas regras de segurança do Firestore.
+  static const maxNameLength = 50;
+  static const maxDays = 15;
+
   final String id;
   final String name;
   final String? description;
@@ -186,31 +198,38 @@ class TrainingChart {
 
   Map<String, dynamic> toMap() {
     return {
-      'id': id,
       'name': name,
-      'description': description,
+      if (description != null) 'description': description,
       'days': days.map((d) => d.toMap()).toList(),
       'frequencyConfig': frequencyConfig.toMap(),
-      'createdAt': createdAt.toIso8601String(),
+      'createdAt': Timestamp.fromDate(createdAt),
     };
   }
 
-  factory TrainingChart.fromMap(Map<String, dynamic> map) {
+  /// [id] é o identificador do documento no Firestore.
+  factory TrainingChart.fromMap(
+    String id,
+    Map<String, dynamic> map, {
+    required ExerciseLookup findExercise,
+  }) {
     return TrainingChart(
-      id: map['id'] as String,
+      id: id,
       name: map['name'] as String,
       description: map['description'] as String?,
       days: (map['days'] as List?)
-              ?.map((item) => TrainingDay.fromMap(Map<String, dynamic>.from(item as Map)))
+              ?.map(
+                (item) => TrainingDay.fromMap(
+                  Map<String, dynamic>.from(item as Map),
+                  findExercise: findExercise,
+                ),
+              )
               .toList() ??
           [],
       frequencyConfig: map['frequencyConfig'] != null
           ? WorkoutFrequencyConfig.fromMap(
               Map<String, dynamic>.from(map['frequencyConfig'] as Map))
           : const WorkoutFrequencyConfig(type: WorkoutFrequencyType.fixedDays),
-      createdAt: map['createdAt'] != null
-          ? DateTime.tryParse(map['createdAt'] as String) ?? DateTime.now()
-          : DateTime.now(),
+      createdAt: (map['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
     );
   }
 }

@@ -1,3 +1,4 @@
+import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mentz/features/training/controllers/chart_form_controller.dart';
@@ -22,7 +23,7 @@ void main() {
 
   setUp(() {
     service = TrainingChartService();
-    service.clearForTest();
+    service.startForTest(FakeFirebaseFirestore(), uid: 'test-user');
   });
 
   Widget createWidgetUnderTest() {
@@ -404,11 +405,13 @@ void main() {
     });
 
     test('sem descanso sugerido, o exercício não mostra descanso', () {
-      final exercise = WorkoutExercise(exercise: Exercise(name: 'Supino reto'));
+      final exercise = WorkoutExercise(
+        exercise: Exercise(id: 'supino-reto', name: 'Supino reto'),
+      );
 
       expect(exercise.restSeconds, isNull);
       expect(exercise.restLabel, isNull);
-      expect(exercise.toMap()['restSeconds'], isNull);
+      expect(exercise.toMap().containsKey('restSeconds'), isFalse);
     });
   });
 
@@ -448,19 +451,23 @@ void main() {
     });
 
     test('toMap e fromMap preservam os exercícios do dia', () {
+      final bench = Exercise(id: 'supino-reto', name: 'Supino reto');
       final day = TrainingDay(
         id: 'day-1',
         name: 'TREINO A',
         order: 1,
         exercises: [
           WorkoutExercise(
-            exercise: Exercise(name: 'Supino reto'),
+            exercise: bench,
             plannedSets: PlannedSet.repeat(4, minReps: 8, maxReps: 10),
           ),
         ],
       );
 
-      final restored = TrainingDay.fromMap(day.toMap());
+      final restored = TrainingDay.fromMap(
+        day.toMap(),
+        findExercise: (id) => id == bench.id ? bench : null,
+      );
 
       expect(restored.exercises.single.name, 'Supino reto');
       expect(restored.exercises.single.setsLabel, '4 × 8–10');

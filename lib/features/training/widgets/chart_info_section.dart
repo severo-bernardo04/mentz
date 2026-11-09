@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:mentz/core/utils/validators.dart';
+import 'package:mentz/models/training_chart.dart';
 import 'package:mentz/widgets/app_text_field.dart';
 import 'package:mentz/widgets/section_card.dart';
 
@@ -18,7 +19,14 @@ class ChartInfoSection extends StatelessWidget {
         key: const Key('chart_name_field'),
         controller: nameCtrl,
         textCapitalization: TextCapitalization.sentences,
-        validator: (v) => Validators.notEmpty(v, 'Informe o nome da planilha.'),
+        validator: (v) {
+          final emptyError = Validators.notEmpty(v, 'Informe o nome da planilha.');
+          if (emptyError != null) return emptyError;
+
+          return v!.trim().length > TrainingChart.maxNameLength
+              ? 'Use no máximo ${TrainingChart.maxNameLength} caracteres.'
+              : null;
+        },
       ),
     );
   }

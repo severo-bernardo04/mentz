@@ -338,8 +338,9 @@ void main() {
     });
 
     test('toMap e fromMap preservam as séries planejadas', () {
+      final remada = Exercise(id: 'remada-curvada', name: 'Remada curvada');
       final original = WorkoutExercise(
-        exercise: Exercise(name: 'Remada curvada'),
+        exercise: remada,
         plannedSets: const [
           PlannedSet(
             type: SetType.warmup,
@@ -351,7 +352,10 @@ void main() {
         ],
       );
 
-      final restored = WorkoutExercise.fromMap(original.toMap());
+      final restored = WorkoutExercise.fromMap(
+        original.toMap(),
+        findExercise: (id) => id == remada.id ? remada : null,
+      );
 
       expect(restored.name, 'Remada curvada');
       expect(restored.plannedSets.length, 2);

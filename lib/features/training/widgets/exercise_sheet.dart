@@ -100,6 +100,7 @@ class _ExerciseSheetState extends State<ExerciseSheet> {
         exercise: widget.catalogOnly
             ? catalog!
             : Exercise(
+                id: catalog?.id,
                 name: _name.text.trim(),
                 muscle: _muscle.text.trim(),
                 nameEn: catalog?.nameEn,

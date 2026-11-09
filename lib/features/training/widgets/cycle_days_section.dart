@@ -42,10 +42,11 @@ class _CycleDaysSectionState extends State<CycleDaysSection> {
     setState(() => _expanded = _expanded == index ? null : index);
   }
 
-  /// Adiciona um dia e já o deixa aberto para edição.
+  /// Adiciona um dia e já o deixa aberto. No limite de dias, nada muda.
   void _addDay() {
-    setState(() => _expanded = widget.days.length);
+    final countBefore = widget.days.length;
     widget.onAdd();
+    if (widget.days.length > countBefore) setState(() => _expanded = countBefore);
   }
 
   /// Remove o dia e volta para o primeiro. O último dia não pode ser removido.

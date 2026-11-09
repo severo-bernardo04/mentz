@@ -43,11 +43,15 @@ class ChartFormController extends ChangeNotifier {
     notifyListeners();
   }
 
-  void addDay() {
+  /// Adiciona um dia ao ciclo. Retorna false se já estiver no limite.
+  bool addDay() {
+    if (days.length >= TrainingChart.maxDays) return false;
+
     final letter = String.fromCharCode(65 + (days.length % 26));
     days.add(DayDraft(name: 'TREINO $letter'));
     errorMessage = null;
     notifyListeners();
+    return true;
   }
 
   /// Remove o dia [index]. Retorna false se for o último (não pode remover).
@@ -153,8 +157,8 @@ class ChartFormController extends ChangeNotifier {
       final chart = buildChart();
       await service.saveChart(chart);
       return chart;
-    } catch (e) {
-      errorMessage = 'Erro ao salvar a planilha: $e';
+    } catch (_) {
+      errorMessage = 'Não foi possível salvar a planilha. Tente novamente.';
       return null;
     } finally {
       loading = false;

@@ -4,6 +4,7 @@ import 'package:mentz/features/auth/login_page.dart';
 import 'package:mentz/features/home/home_page.dart';
 import 'package:mentz/models/app_user.dart';
 import 'package:mentz/services/auth_service.dart';
+import 'package:mentz/services/training_chart_service.dart';
 import 'package:mentz/services/user_profile_service.dart';
 
 /// Mostra o login ou a home conforme a sessão do Firebase.
@@ -47,6 +48,19 @@ class _SignedInGate extends StatefulWidget {
 
 class _SignedInGateState extends State<_SignedInGate> {
   late final Stream<AppUser?> _profile = UserProfileService().watch(widget.uid);
+
+  @override
+  void initState() {
+    super.initState();
+    // Carrega as planilhas enquanto este usuário estiver logado
+    TrainingChartService().watchUser(widget.uid);
+  }
+
+  @override
+  void dispose() {
+    TrainingChartService().stopWatching(widget.uid);
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {

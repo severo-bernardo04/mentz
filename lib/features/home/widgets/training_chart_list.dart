@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../models/training_chart.dart';
 import '../../../services/training_chart_service.dart';
+import '../../../widgets/error_banner.dart';
 import '../../../widgets/fade_slide_in.dart';
 import 'empty_charts_card.dart';
 import 'training_chart_card.dart';
@@ -15,7 +16,18 @@ class TrainingChartList extends StatelessWidget {
     return ListenableBuilder(
       listenable: TrainingChartService(),
       builder: (context, _) {
-        final charts = TrainingChartService().charts;
+        final service = TrainingChartService();
+        final charts = service.charts;
+        final error = service.errorMessage;
+
+        if (service.loading) {
+          return const Padding(
+            padding: EdgeInsets.symmetric(vertical: 24),
+            child: Center(child: CircularProgressIndicator()),
+          );
+        }
+
+        if (error != null) return ErrorBanner(error);
 
         if (charts.isEmpty) {
           return const FadeSlideIn(

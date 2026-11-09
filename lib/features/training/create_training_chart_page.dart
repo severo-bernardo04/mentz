@@ -66,6 +66,15 @@ class _CreateTrainingChartPageState extends State<CreateTrainingChartPage> {
     _form.saveExercise(day, result, index: index);
   }
 
+  void _addDay() {
+    if (_form.addDay()) return;
+
+    context.showSnack(
+      'A planilha pode ter no máximo ${TrainingChart.maxDays} dias.',
+      background: Colors.orange,
+    );
+  }
+
   void _removeDay(int index) {
     if (_form.removeDay(index)) return;
 
@@ -106,7 +115,7 @@ class _CreateTrainingChartPageState extends State<CreateTrainingChartPage> {
                       days: _form.days,
                       intervalMode: _form.frequencyType ==
                           WorkoutFrequencyType.intervalDays,
-                      onAdd: _form.addDay,
+                      onAdd: _addDay,
                       onRemove: _removeDay,
                       onRestChanged: _form.setRestDays,
                       onAddExercise: _editExercise,

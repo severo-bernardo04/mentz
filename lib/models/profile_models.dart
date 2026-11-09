@@ -139,6 +139,8 @@ class PlannedSet {
 /// Exercício do catálogo: guarda apenas os dados fixos do exercício.
 /// O que varia de treino para treino fica em [WorkoutExercise].
 class Exercise {
+  /// Identificador fixo no catálogo, usado para referenciar o exercício.
+  String? id;
   String name;
   String muscle;
   String? nameEn;
@@ -149,6 +151,7 @@ class Exercise {
   String? instructions;
 
   Exercise({
+    this.id,
     required this.name,
     this.muscle = '',
     this.nameEn,
@@ -163,6 +166,7 @@ class Exercise {
       primaryMuscle ?? (muscle.isNotEmpty ? muscle : 'Geral');
 
   Exercise copyWith({
+    String? id,
     String? name,
     String? muscle,
     String? nameEn,
@@ -173,6 +177,7 @@ class Exercise {
     String? instructions,
   }) {
     return Exercise(
+      id: id ?? this.id,
       name: name ?? this.name,
       muscle: muscle ?? this.muscle,
       nameEn: nameEn ?? this.nameEn,
@@ -186,6 +191,7 @@ class Exercise {
   }
 
   Map<String, dynamic> toMap() => {
+        'id': id,
         'name': name,
         'muscle': muscle,
         'nameEn': nameEn,
@@ -198,6 +204,7 @@ class Exercise {
 
   factory Exercise.fromMap(Map<String, dynamic> map) {
     return Exercise(
+      id: map['id'] as String?,
       name: map['name'] as String? ?? '',
       muscle: map['muscle'] as String? ?? '',
       nameEn: map['nameEn'] as String?,
@@ -215,6 +222,9 @@ class Exercise {
     );
   }
 }
+
+/// Busca um exercício do catálogo pelo identificador.
+typedef ExerciseLookup = Exercise? Function(String id);
 
 const _defaultPlannedSets = [
   PlannedSet(minReps: 10, maxReps: 12),
@@ -272,21 +282,31 @@ class WorkoutExercise {
     return seconds == 0 ? '$minutes min' : '$minutes min ${seconds}s';
   }
 
-  Map<String, dynamic> toMap() => {
-        'exercise': exercise.toMap(),
-        'plannedSets': plannedSets.map((s) => s.toMap()).toList(),
-        'restSeconds': restSeconds,
-      };
+  /// Guarda só a referência ao catálogo, sem duplicar os dados do exercício.
+  Map<String, dynamic> toMap() {
+    assert(exercise.id != null, 'Só exercícios do catálogo podem ser salvos.');
 
-  factory WorkoutExercise.fromMap(Map<String, dynamic> map) {
+    return {
+      'exerciseId': exercise.id,
+      'plannedSets': plannedSets.map((s) => s.toMap()).toList(),
+      if (restSeconds != null) 'restSeconds': restSeconds,
+    };
+  }
+
+  /// Recupera os dados do exercício com [findExercise]. Se ele não existir
+  /// mais no catálogo, mantém a série planejada com um nome provisório.
+  factory WorkoutExercise.fromMap(
+    Map<String, dynamic> map, {
+    required ExerciseLookup findExercise,
+  }) {
+    final exerciseId = map['exerciseId'] as String? ?? '';
     final planned = (map['plannedSets'] as List?)
         ?.map((s) => PlannedSet.fromMap(Map<String, dynamic>.from(s as Map)))
         .toList();
 
     return WorkoutExercise(
-      exercise: Exercise.fromMap(
-        Map<String, dynamic>.from(map['exercise'] as Map? ?? const {}),
-      ),
+      exercise: findExercise(exerciseId) ??
+          Exercise(id: exerciseId, name: 'Exercício indisponível'),
       plannedSets: planned == null || planned.isEmpty
           ? _defaultPlannedSets
           : planned,

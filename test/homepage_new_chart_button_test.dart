@@ -1,3 +1,4 @@
+import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mentz/features/training/create_training_chart_page.dart';
@@ -9,7 +10,7 @@ void main() {
 
   setUp(() {
     service = TrainingChartService();
-    service.clearForTest();
+    service.startForTest(FakeFirebaseFirestore(), uid: 'test-user');
   });
 
   Widget createHomePageUnderTest() {
