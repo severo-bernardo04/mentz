@@ -293,6 +293,19 @@ void main() {
       }
     });
 
+    test('apenas Reconhecimento aceita valor único', () {
+      final feeder = PlannedSet.tryParse('2', type: SetType.feeder);
+
+      expect(feeder?.minReps, 2);
+      expect(feeder?.maxReps, 2);
+      expect(feeder?.repsLabel, '2');
+      expect(feeder?.repsInput, '2');
+      expect(PlannedSet.tryParse('2', type: SetType.working), isNull);
+      expect(PlannedSet.tryParse('2', type: SetType.warmup), isNull);
+      expect(PlannedSet.tryParse('0', type: SetType.feeder), isNull);
+      expect(PlannedSet.tryParse('1-3', type: SetType.feeder)?.maxReps, 3);
+    });
+
     test('o modelo não aceita faixa invertida nem drop set em Reconhecimento', () {
       expect(() => PlannedSet(minReps: 10, maxReps: 8), throwsAssertionError);
       expect(

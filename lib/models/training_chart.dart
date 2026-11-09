@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'profile_models.dart';
 
 /// Tipo de frequência com que os treinos da planilha são executados.
 enum WorkoutFrequencyType {
@@ -16,11 +17,15 @@ class TrainingDay {
   final int order;
   final String? focusOrDescription;
 
+  /// Exercícios do dia, na ordem de execução.
+  final List<WorkoutExercise> exercises;
+
   const TrainingDay({
     required this.id,
     required this.name,
     required this.order,
     this.focusOrDescription,
+    this.exercises = const [],
   });
 
   TrainingDay copyWith({
@@ -28,12 +33,14 @@ class TrainingDay {
     String? name,
     int? order,
     String? focusOrDescription,
+    List<WorkoutExercise>? exercises,
   }) {
     return TrainingDay(
       id: id ?? this.id,
       name: name ?? this.name,
       order: order ?? this.order,
       focusOrDescription: focusOrDescription ?? this.focusOrDescription,
+      exercises: exercises ?? this.exercises,
     );
   }
 
@@ -43,6 +50,7 @@ class TrainingDay {
       'name': name,
       'order': order,
       'focusOrDescription': focusOrDescription,
+      'exercises': exercises.map((e) => e.toMap()).toList(),
     };
   }
 
@@ -52,6 +60,11 @@ class TrainingDay {
       name: map['name'] as String,
       order: (map['order'] as num?)?.toInt() ?? 0,
       focusOrDescription: map['focusOrDescription'] as String?,
+      exercises: (map['exercises'] as List?)
+              ?.map((e) =>
+                  WorkoutExercise.fromMap(Map<String, dynamic>.from(e as Map)))
+              .toList() ??
+          const [],
     );
   }
 
@@ -63,10 +76,12 @@ class TrainingDay {
           id == other.id &&
           name == other.name &&
           order == other.order &&
-          focusOrDescription == other.focusOrDescription;
+          focusOrDescription == other.focusOrDescription &&
+          listEquals(exercises, other.exercises);
 
   @override
-  int get hashCode => Object.hash(id, name, order, focusOrDescription);
+  int get hashCode =>
+      Object.hash(id, name, order, focusOrDescription, Object.hashAll(exercises));
 }
 
 /// Configuração de frequência de execução dos treinos.

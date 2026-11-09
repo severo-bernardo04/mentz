@@ -71,8 +71,11 @@ class ExerciseTile extends StatelessWidget {
                   runSpacing: 6,
                   children: [
                     StatusChip(label: e.setsLabel),
-                    StatusChip(label: e.load, icon: Icons.scale_outlined),
-                    StatusChip(label: e.restLabel, icon: Icons.timer_outlined),
+                    if (e.restLabel != null)
+                      StatusChip(
+                        label: e.restLabel!,
+                        icon: Icons.timer_outlined,
+                      ),
                   ],
                 ),
               ],

@@ -59,15 +59,6 @@ class FrequencySection extends StatelessWidget {
   }
 }
 
-TextStyle? _labelStyle(BuildContext context) {
-  final theme = Theme.of(context);
-
-  return theme.textTheme.bodyMedium?.copyWith(
-    color: theme.colorScheme.onSurfaceVariant,
-    fontWeight: FontWeight.w600,
-  );
-}
-
 class _WeekdayPicker extends StatelessWidget {
   final Set<int> selected;
   final void Function(int weekday, bool selected) onToggled;
@@ -76,27 +67,17 @@ class _WeekdayPicker extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
       children: [
-        Text(
-          'Dias da semana em que você treina:',
-          style: _labelStyle(context),
-        ),
-        const SizedBox(height: 10),
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: [
-            for (var day = 1; day <= 7; day++)
-              FilterChip(
-                key: Key('weekday_chip_$day'),
-                label: Text(weekdayShort[day - 1]),
-                selected: selected.contains(day),
-                onSelected: (value) => onToggled(day, value),
-              ),
-          ],
-        ),
+        for (var day = 1; day <= 7; day++)
+          FilterChip(
+            key: Key('weekday_chip_$day'),
+            label: Text(weekdayShort[day - 1]),
+            selected: selected.contains(day),
+            onSelected: (value) => onToggled(day, value),
+          ),
       ],
     );
   }
@@ -109,18 +90,11 @@ class _IntervalHint extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text('Ciclo por intervalos variáveis:', style: _labelStyle(context)),
-        const SizedBox(height: 6),
-        Text(
-          'Configure os dias de descanso após cada dia de treino logo abaixo.',
-          style: theme.textTheme.bodySmall?.copyWith(
-            color: theme.colorScheme.onSurfaceVariant,
-          ),
-        ),
-      ],
+    return Text(
+      'Defina o descanso abrindo cada dia abaixo.',
+      style: theme.textTheme.bodySmall?.copyWith(
+        color: theme.colorScheme.onSurfaceVariant,
+      ),
     );
   }
 }

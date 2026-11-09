@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:mentz/core/utils/snackbars.dart';
 import 'package:mentz/features/training/controllers/chart_form_controller.dart';
+import 'package:mentz/features/training/controllers/day_draft.dart';
 import 'package:mentz/features/training/widgets/chart_info_section.dart';
 import 'package:mentz/features/training/widgets/cycle_days_section.dart';
+import 'package:mentz/features/training/widgets/exercise_sheet.dart';
 import 'package:mentz/features/training/widgets/frequency_section.dart';
+import 'package:mentz/models/profile_models.dart';
 import 'package:mentz/models/training_chart.dart';
 import 'package:mentz/services/training_chart_service.dart';
 import 'package:mentz/widgets/app_button.dart';
@@ -46,6 +49,23 @@ class _CreateTrainingChartPageState extends State<CreateTrainingChartPage> {
     Navigator.of(context).pop(chart);
   }
 
+  /// Abre o formulário do exercício; [index] indica a edição de um já existente.
+  /// Em um dia de treino, o exercício sempre vem do catálogo.
+  Future<void> _editExercise(DayDraft day, {int? index}) async {
+    final result = await showModalBottomSheet<WorkoutExercise>(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (_) => ExerciseSheet(
+        exercise: index == null ? null : day.exercises[index],
+        catalogOnly: true,
+      ),
+    );
+    if (!mounted || result == null) return;
+
+    _form.saveExercise(day, result, index: index);
+  }
+
   void _removeDay(int index) {
     if (_form.removeDay(index)) return;
 
@@ -75,7 +95,6 @@ class _CreateTrainingChartPageState extends State<CreateTrainingChartPage> {
                   children: [
                     ChartInfoSection(
                       nameCtrl: _form.nameCtrl,
-                      descCtrl: _form.descCtrl,
                     ),
                     FrequencySection(
                       type: _form.frequencyType,
@@ -90,6 +109,11 @@ class _CreateTrainingChartPageState extends State<CreateTrainingChartPage> {
                       onAdd: _form.addDay,
                       onRemove: _removeDay,
                       onRestChanged: _form.setRestDays,
+                      onAddExercise: _editExercise,
+                      onEditExercise: (day, index) =>
+                          _editExercise(day, index: index),
+                      onRemoveExercise: _form.removeExercise,
+                      onReorderExercise: _form.reorderExercise,
                     ),
                   ],
                 ),

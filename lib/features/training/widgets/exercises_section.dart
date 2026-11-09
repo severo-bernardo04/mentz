@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:mentz/features/training/widgets/editable_exercise_tile.dart';
+import 'package:mentz/features/training/widgets/reorderable_exercise_list.dart';
 import 'package:mentz/models/profile_models.dart';
 import 'package:mentz/widgets/empty_hint.dart';
 import 'package:mentz/widgets/section_card.dart';
@@ -35,21 +35,11 @@ class ExercisesSection extends StatelessWidget {
       ),
       child: exercises.isEmpty
           ? const EmptyHint('Nenhum exercício ainda.')
-          : ReorderableListView(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              buildDefaultDragHandles: false,
-              onReorderItem: onReorder,
-              children: [
-                for (var i = 0; i < exercises.length; i++)
-                  EditableExerciseTile(
-                    key: ObjectKey(exercises[i]),
-                    index: i,
-                    exercise: exercises[i],
-                    onEdit: () => onEdit(i),
-                    onDelete: () => onDelete(i),
-                  ),
-              ],
+          : ReorderableExerciseList(
+              exercises: exercises,
+              onEdit: onEdit,
+              onDelete: onDelete,
+              onReorder: onReorder,
             ),
     );
   }

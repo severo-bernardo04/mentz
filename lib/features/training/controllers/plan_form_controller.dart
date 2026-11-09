@@ -25,7 +25,6 @@ class PlanFormController extends ChangeNotifier {
   static WorkoutExercise _copy(WorkoutExercise e) => WorkoutExercise(
         exercise: e.exercise,
         plannedSets: e.plannedSets,
-        load: e.load,
         restSeconds: e.restSeconds,
       );
 

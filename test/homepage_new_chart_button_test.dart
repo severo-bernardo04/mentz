@@ -67,6 +67,24 @@ void main() {
       );
       await tester.pump();
 
+      // Mantém um único dia e adiciona um exercício do catálogo a ele
+      for (final day in [2, 1]) {
+        await tester.tap(find.byKey(Key('day_header_$day')));
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(Key('delete_day_button_$day')));
+        await tester.pumpAndSettle();
+      }
+      await tester.tap(find.byKey(const Key('add_exercise_button_0')));
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(const Key('exercise_sheet_choose_from_catalog_button')),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Selecionar').first);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Confirmar'));
+      await tester.pumpAndSettle();
+
       // Salva
       await tester.tap(find.text('Criar Planilha'));
       await tester.pump();

@@ -91,24 +91,30 @@ class PlannedSet {
     required int maxReps,
   }) => List.filled(count, PlannedSet(minReps: minReps, maxReps: maxReps));
 
-  /// Lê uma faixa digitada como "8-10". Retorna null se o formato for
-  /// inválido, se começar em zero ou se o mínimo for maior que o máximo.
-  static PlannedSet? tryParse(String text) {
-    final match = RegExp(r'^\s*(\d{1,3})\s*[-–]\s*(\d{1,3})\s*$').firstMatch(text);
+  /// Lê uma faixa digitada como "8-10". Séries de Reconhecimento também
+  /// aceitam um valor único, como "2". Retorna null se o formato for inválido,
+  /// se começar em zero ou se o mínimo for maior que o máximo.
+  static PlannedSet? tryParse(String text, {SetType type = SetType.working}) {
+    final match = RegExp(
+      r'^\s*(\d{1,3})\s*(?:[-–]\s*(\d{1,3})\s*)?$',
+    ).firstMatch(text);
     if (match == null) return null;
+    if (match.group(2) == null && type != SetType.feeder) return null;
 
     final min = int.parse(match.group(1)!);
-    final max = int.parse(match.group(2)!);
+    final max = int.parse(match.group(2) ?? match.group(1)!);
     if (min < 1 || min > max) return null;
 
-    return PlannedSet(minReps: min, maxReps: max);
+    return PlannedSet(type: type, minReps: min, maxReps: max);
   }
 
   /// Faixa para exibição (ex: "8–10").
   String get repsLabel => minReps == maxReps ? '$minReps' : '$minReps–$maxReps';
 
   /// Faixa no formato aceito por [tryParse] (ex: "8-10").
-  String get repsInput => '$minReps-$maxReps';
+  String get repsInput => type == SetType.feeder && minReps == maxReps
+      ? '$minReps'
+      : '$minReps-$maxReps';
 
   Map<String, dynamic> toMap() => {
         'type': type.name,
@@ -218,19 +224,20 @@ const _defaultPlannedSets = [
 
 /// Exercício dentro de um treino: referencia o catálogo e guarda o que é
 /// próprio daquele treino, como as séries, a faixa de repetições e o descanso.
+/// A carga não fica aqui: ela só é informada durante a execução.
 class WorkoutExercise {
   Exercise exercise;
 
   /// Séries planejadas, na ordem de execução. Nunca fica vazia.
   List<PlannedSet> plannedSets;
-  String load;
-  int restSeconds;
+
+  /// Descanso sugerido em segundos. É opcional: null quando não há sugestão.
+  int? restSeconds;
 
   WorkoutExercise({
     required this.exercise,
     this.plannedSets = _defaultPlannedSets,
-    this.load = '—',
-    this.restSeconds = 60,
+    this.restSeconds,
   }) : assert(plannedSets.isNotEmpty, 'O exercício precisa de ao menos uma série.');
 
   String get name => exercise.name;
@@ -252,14 +259,22 @@ class WorkoutExercise {
     return parts.join(' + ');
   }
 
-  String get restLabel => restSeconds >= 60 && restSeconds % 60 == 0
-      ? '${restSeconds ~/ 60} min'
-      : '${restSeconds}s';
+  /// Descanso para exibição (ex: "45s", "2 min" ou "1 min 35s").
+  /// É null quando o exercício não tem descanso sugerido.
+  String? get restLabel {
+    final rest = restSeconds;
+    if (rest == null) return null;
+
+    final minutes = rest ~/ 60;
+    final seconds = rest % 60;
+
+    if (minutes == 0) return '${seconds}s';
+    return seconds == 0 ? '$minutes min' : '$minutes min ${seconds}s';
+  }
 
   Map<String, dynamic> toMap() => {
         'exercise': exercise.toMap(),
         'plannedSets': plannedSets.map((s) => s.toMap()).toList(),
-        'load': load,
         'restSeconds': restSeconds,
       };
 
@@ -275,8 +290,7 @@ class WorkoutExercise {
       plannedSets: planned == null || planned.isEmpty
           ? _defaultPlannedSets
           : planned,
-      load: map['load'] as String? ?? '—',
-      restSeconds: (map['restSeconds'] as num?)?.toInt() ?? 60,
+      restSeconds: (map['restSeconds'] as num?)?.toInt(),
     );
   }
 }
@@ -725,27 +739,22 @@ class StudentProfile {
             WorkoutExercise(
                 exercise: Exercise(name: 'Supino reto', muscle: 'Peito'),
                 plannedSets: PlannedSet.repeat(4, minReps: 8, maxReps: 10),
-                load: '60 kg',
                 restSeconds: 90),
             WorkoutExercise(
                 exercise: Exercise(name: 'Supino inclinado com halteres', muscle: 'Peito'),
                 plannedSets: PlannedSet.repeat(3, minReps: 10, maxReps: 12),
-                load: '24 kg',
                 restSeconds: 75),
             WorkoutExercise(
                 exercise: Exercise(name: 'Crucifixo na máquina', muscle: 'Peito'),
                 plannedSets: PlannedSet.repeat(3, minReps: 10, maxReps: 12),
-                load: '40 kg',
                 restSeconds: 60),
             WorkoutExercise(
                 exercise: Exercise(name: 'Tríceps testa', muscle: 'Tríceps'),
                 plannedSets: PlannedSet.repeat(3, minReps: 10, maxReps: 12),
-                load: '25 kg',
                 restSeconds: 60),
             WorkoutExercise(
                 exercise: Exercise(name: 'Tríceps na polia', muscle: 'Tríceps'),
                 plannedSets: PlannedSet.repeat(3, minReps: 12, maxReps: 15),
-                load: '30 kg',
                 restSeconds: 45),
           ],
         ),
@@ -757,22 +766,18 @@ class StudentProfile {
             WorkoutExercise(
                 exercise: Exercise(name: 'Puxada frontal', muscle: 'Costas'),
                 plannedSets: PlannedSet.repeat(4, minReps: 8, maxReps: 10),
-                load: '55 kg',
                 restSeconds: 90),
             WorkoutExercise(
                 exercise: Exercise(name: 'Remada curvada', muscle: 'Costas'),
                 plannedSets: PlannedSet.repeat(4, minReps: 8, maxReps: 10),
-                load: '50 kg',
                 restSeconds: 90),
             WorkoutExercise(
                 exercise: Exercise(name: 'Rosca direta', muscle: 'Bíceps'),
                 plannedSets: PlannedSet.repeat(3, minReps: 10, maxReps: 12),
-                load: '30 kg',
                 restSeconds: 60),
             WorkoutExercise(
                 exercise: Exercise(name: 'Rosca martelo', muscle: 'Bíceps'),
                 plannedSets: PlannedSet.repeat(3, minReps: 10, maxReps: 12),
-                load: '14 kg',
                 restSeconds: 60),
           ],
         ),
@@ -784,22 +789,18 @@ class StudentProfile {
             WorkoutExercise(
                 exercise: Exercise(name: 'Agachamento livre', muscle: 'Quadríceps'),
                 plannedSets: PlannedSet.repeat(4, minReps: 6, maxReps: 8),
-                load: '80 kg',
                 restSeconds: 120),
             WorkoutExercise(
                 exercise: Exercise(name: 'Leg press 45°', muscle: 'Quadríceps'),
                 plannedSets: PlannedSet.repeat(4, minReps: 10, maxReps: 12),
-                load: '180 kg',
                 restSeconds: 90),
             WorkoutExercise(
                 exercise: Exercise(name: 'Desenvolvimento com halteres', muscle: 'Ombros'),
                 plannedSets: PlannedSet.repeat(3, minReps: 8, maxReps: 10),
-                load: '20 kg',
                 restSeconds: 75),
             WorkoutExercise(
                 exercise: Exercise(name: 'Elevação lateral', muscle: 'Ombros'),
                 plannedSets: PlannedSet.repeat(3, minReps: 12, maxReps: 15),
-                load: '8 kg',
                 restSeconds: 45),
           ],
         ),
@@ -1057,12 +1058,10 @@ class TrainerProfile {
             WorkoutExercise(
                 exercise: Exercise(name: 'Supino reto', muscle: 'Peito'),
                 plannedSets: PlannedSet.repeat(4, minReps: 8, maxReps: 10),
-                load: '40 kg',
                 restSeconds: 90),
             WorkoutExercise(
                 exercise: Exercise(name: 'Tríceps na polia', muscle: 'Tríceps'),
                 plannedSets: PlannedSet.repeat(3, minReps: 12, maxReps: 15),
-                load: '20 kg',
                 restSeconds: 45),
           ],
         ),
@@ -1077,12 +1076,10 @@ class TrainerProfile {
             WorkoutExercise(
                 exercise: Exercise(name: 'Puxada frontal', muscle: 'Costas'),
                 plannedSets: PlannedSet.repeat(4, minReps: 8, maxReps: 10),
-                load: '40 kg',
                 restSeconds: 90),
             WorkoutExercise(
                 exercise: Exercise(name: 'Rosca direta', muscle: 'Bíceps'),
                 plannedSets: PlannedSet.repeat(3, minReps: 10, maxReps: 12),
-                load: '20 kg',
                 restSeconds: 60),
           ],
         ),
