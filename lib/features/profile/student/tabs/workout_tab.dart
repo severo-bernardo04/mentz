@@ -6,6 +6,8 @@ import 'package:mentz/features/profile/widgets/profile_tab_page.dart';
 import 'package:mentz/features/training_history/training_history_page.dart';
 import 'package:mentz/features/training_history/workout_session_detail_page.dart';
 import 'package:mentz/models/profile_models.dart';
+import 'package:mentz/services/training_history_service.dart';
+import 'package:mentz/widgets/empty_hint.dart';
 import 'package:mentz/widgets/info_row.dart';
 import 'package:mentz/widgets/section_card.dart';
 
@@ -20,6 +22,9 @@ class WorkoutTab extends StatefulWidget {
 }
 
 class _WorkoutTabState extends State<WorkoutTab> {
+  /// Quantidade de treinos recentes mostrados nesta aba.
+  static const _recentSessions = 5;
+
   int _selected = 0;
   final Set<String> _checked = {};
 
@@ -105,37 +110,53 @@ class _WorkoutTabState extends State<WorkoutTab> {
             label: const Text('Ver todos'),
             onPressed: () => context.pushFade(const TrainingHistoryPage()),
           ),
-          child: Column(
-            children: [
-              for (final h in s.history)
-                Material(
-                  type: MaterialType.transparency,
-                  child: ListTile(
-                    contentPadding: EdgeInsets.zero,
-                    dense: true,
-                    onTap: () => context.pushFade(
-                      WorkoutSessionDetailPage(session: h),
-                    ),
-                    leading: CircleAvatar(
-                      radius: 18,
-                      backgroundColor: cs.primaryContainer,
-                      child: Text(
-                        h.plan,
-                        style: TextStyle(
-                          color: cs.onPrimaryContainer,
-                          fontWeight: FontWeight.w800,
+          // Mesma fonte de "Ver todos", com os exercícios de cada treino
+          child: ListenableBuilder(
+            listenable: TrainingHistoryService(),
+            builder: (context, _) {
+              final sessions = TrainingHistoryService().sessions
+                  .take(_recentSessions)
+                  .toList();
+
+              if (sessions.isEmpty) {
+                return const EmptyHint('Nenhum treino concluído ainda.');
+              }
+
+              return Column(
+                children: [
+                  for (final h in sessions)
+                    Material(
+                      type: MaterialType.transparency,
+                      child: ListTile(
+                        contentPadding: EdgeInsets.zero,
+                        dense: true,
+                        onTap: () => context.pushFade(
+                          WorkoutSessionDetailPage(session: h),
+                        ),
+                        leading: CircleAvatar(
+                          radius: 18,
+                          backgroundColor: cs.primaryContainer,
+                          child: Text(
+                            h.plan,
+                            style: TextStyle(
+                              color: cs.onPrimaryContainer,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                        ),
+                        title: Text('Treino ${h.plan}'),
+                        subtitle: Text(
+                          '${formatDate(h.date)}  •  ${h.minutes} min',
+                        ),
+                        trailing: Icon(
+                          Icons.check_circle,
+                          color: Colors.green.shade600,
                         ),
                       ),
                     ),
-                    title: Text('Treino ${h.plan}'),
-                    subtitle: Text('${formatDate(h.date)}  •  ${h.minutes} min'),
-                    trailing: Icon(
-                      Icons.check_circle,
-                      color: Colors.green.shade600,
-                    ),
-                  ),
-                ),
-            ],
+                ],
+              );
+            },
           ),
         ),
       ],

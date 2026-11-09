@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
 /// Modelos e dados de exemplo (mock) dos perfis de aluno e treinador.
@@ -487,6 +488,10 @@ class ExecutedSet {
 }
 
 class ExecutedExercise {
+  /// Referência ao catálogo, usada para calcular a evolução por músculo.
+  final String? exerciseId;
+
+  /// Nome e músculo guardados como foram no dia do treino.
   final String name;
   final String muscle;
   final List<ExecutedSet> sets;
@@ -494,6 +499,7 @@ class ExecutedExercise {
   final String? notes;
 
   const ExecutedExercise({
+    this.exerciseId,
     required this.name,
     this.muscle = '',
     this.sets = const [],
@@ -502,6 +508,7 @@ class ExecutedExercise {
   });
 
   ExecutedExercise copyWith({
+    String? exerciseId,
     String? name,
     String? muscle,
     List<ExecutedSet>? sets,
@@ -509,6 +516,7 @@ class ExecutedExercise {
     String? notes,
   }) {
     return ExecutedExercise(
+      exerciseId: exerciseId ?? this.exerciseId,
       name: name ?? this.name,
       muscle: muscle ?? this.muscle,
       sets: sets ?? this.sets,
@@ -518,15 +526,17 @@ class ExecutedExercise {
   }
 
   Map<String, dynamic> toMap() => {
+        if (exerciseId != null) 'exerciseId': exerciseId,
         'name': name,
         'muscle': muscle,
         'sets': sets.map((s) => s.toMap()).toList(),
         'completed': completed,
-        'notes': notes,
+        if (notes != null) 'notes': notes,
       };
 
   factory ExecutedExercise.fromMap(Map<String, dynamic> map) {
     return ExecutedExercise(
+      exerciseId: map['exerciseId'] as String?,
       name: map['name'] as String? ?? '',
       muscle: map['muscle'] as String? ?? '',
       sets: (map['sets'] as List?)
@@ -562,7 +572,7 @@ class CompletedWorkout {
   String get displayWorkoutName =>
       workoutName ?? (plan.startsWith('Treino') ? plan : 'Treino $plan');
 
-  String get displayChartName => chartName ?? 'Training Charts 1';
+  String get displayChartName => chartName ?? 'Planilha';
 
   String get weekdayName {
     const days = [
@@ -598,23 +608,21 @@ class CompletedWorkout {
   }
 
   Map<String, dynamic> toMap() => {
-        'id': id,
-        'date': date.toIso8601String(),
+        'date': Timestamp.fromDate(date),
         'plan': plan,
         'minutes': minutes,
-        'chartName': chartName,
-        'workoutName': workoutName,
+        if (chartName != null) 'chartName': chartName,
+        if (workoutName != null) 'workoutName': workoutName,
         'executedExercises': executedExercises.map((e) => e.toMap()).toList(),
       };
 
-  factory CompletedWorkout.fromMap(Map<String, dynamic> map) {
+  /// [id] é o identificador do documento no Firestore.
+  factory CompletedWorkout.fromMap(String id, Map<String, dynamic> map) {
     return CompletedWorkout(
-      map['date'] != null
-          ? DateTime.tryParse(map['date'] as String) ?? DateTime.now()
-          : DateTime.now(),
+      (map['date'] as Timestamp?)?.toDate() ?? DateTime.now(),
       map['plan'] as String? ?? '',
       (map['minutes'] as num?)?.toInt() ?? 0,
-      id: map['id'] as String?,
+      id: id,
       chartName: map['chartName'] as String?,
       workoutName: map['workoutName'] as String?,
       executedExercises: (map['executedExercises'] as List?)
