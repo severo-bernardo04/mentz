@@ -319,53 +319,117 @@ enum SetType {
 const dropSetLabel = 'Drop set';
 const dropSetColor = Color(0xFF00897B); // Verde-azulado
 
+/// Formata um número sem casas decimais quando for um valor inteiro.
+String _formatNumber(double value) =>
+    '${value == value.roundToDouble() ? value.toInt() : value}';
+
+/// Formata uma carga em kg (ex: "57.5 kg").
+String _formatKg(double value) => '${_formatNumber(value)} kg';
+
+/// Etapa seguinte de um drop set: nova carga e repetições feitas nela.
+/// Os dois valores aceitam apenas passos de 0,5.
+class DropStage {
+  final double loadKg;
+  final double reps;
+
+  const DropStage({required this.loadKg, required this.reps})
+    : assert(
+        loadKg >= 0 && (loadKg * 2) % 1 == 0,
+        'A carga deve ser positiva e variar de 0,5 em 0,5.',
+      ),
+      assert(
+        reps >= 0 && (reps * 2) % 1 == 0,
+        'As repetições devem ser positivas e variar de 0,5 em 0,5.',
+      );
+
+  Map<String, dynamic> toMap() => {'loadKg': loadKg, 'reps': reps};
+
+  factory DropStage.fromMap(Map<String, dynamic> map) {
+    return DropStage(
+      loadKg: (map['loadKg'] as num?)?.toDouble() ?? 0,
+      reps: (map['reps'] as num?)?.toDouble() ?? 0,
+    );
+  }
+}
+
 class ExecutedSet {
   final int setNumber;
   final SetType type;
-  final String load;
-  final String reps;
+
+  /// Carga em kg, em passos de 0,5. Em um drop set, é a carga da primeira etapa.
+  final double loadKg;
+
+  /// Repetições realizadas, em passos de 0,5. Em um drop set, são as da primeira etapa.
+  final double reps;
   final bool completed;
 
   /// Indica se a série tem drop set. Não pode acompanhar [SetType.feeder].
   final bool isDropSet;
 
+  /// Etapas do drop set depois da primeira.
+  final List<DropStage> dropStages;
+
   const ExecutedSet({
     required this.setNumber,
     this.type = SetType.working,
-    required this.load,
+    required this.loadKg,
     required this.reps,
     this.completed = true,
     this.isDropSet = false,
+    this.dropStages = const [],
   }) : assert(
+         loadKg >= 0 && (loadKg * 2) % 1 == 0,
+         'A carga deve ser positiva e variar de 0,5 em 0,5.',
+       ),
+       assert(
+         reps >= 0 && (reps * 2) % 1 == 0,
+         'As repetições devem ser positivas e variar de 0,5 em 0,5.',
+       ),
+       assert(
          !isDropSet || type != SetType.feeder,
          'Drop set só pode acompanhar séries de Trabalho ou Aquecimento.',
        );
 
+  /// Carga com unidade, incluindo as etapas do drop set (ex: "40 kg / 30 kg").
+  String get loadLabel => [
+    _formatKg(loadKg),
+    for (final stage in dropStages) _formatKg(stage.loadKg),
+  ].join(' / ');
+
+  /// Repetições, incluindo as etapas do drop set (ex: "12 + 6").
+  String get repsLabel => [
+    _formatNumber(reps),
+    for (final stage in dropStages) _formatNumber(stage.reps),
+  ].join(' + ');
+
   ExecutedSet copyWith({
     int? setNumber,
     SetType? type,
-    String? load,
-    String? reps,
+    double? loadKg,
+    double? reps,
     bool? completed,
     bool? isDropSet,
+    List<DropStage>? dropStages,
   }) {
     return ExecutedSet(
       setNumber: setNumber ?? this.setNumber,
       type: type ?? this.type,
-      load: load ?? this.load,
+      loadKg: loadKg ?? this.loadKg,
       reps: reps ?? this.reps,
       completed: completed ?? this.completed,
       isDropSet: isDropSet ?? this.isDropSet,
+      dropStages: dropStages ?? this.dropStages,
     );
   }
 
   Map<String, dynamic> toMap() => {
         'setNumber': setNumber,
         'type': type.name,
-        'load': load,
+        'loadKg': loadKg,
         'reps': reps,
         'completed': completed,
         'isDropSet': isDropSet,
+        'dropStages': dropStages.map((s) => s.toMap()).toList(),
       };
 
   factory ExecutedSet.fromMap(Map<String, dynamic> map) {
@@ -375,10 +439,15 @@ class ExecutedSet {
         (e) => e.name == map['type'],
         orElse: () => SetType.working,
       ),
-      load: map['load'] as String? ?? '—',
-      reps: map['reps'] as String? ?? '—',
+      loadKg: (map['loadKg'] as num?)?.toDouble() ?? 0,
+      reps: (map['reps'] as num?)?.toDouble() ?? 0,
       completed: map['completed'] as bool? ?? true,
       isDropSet: map['isDropSet'] as bool? ?? false,
+      dropStages: (map['dropStages'] as List?)
+              ?.map((s) =>
+                  DropStage.fromMap(Map<String, dynamic>.from(s as Map)))
+              .toList() ??
+          const [],
     );
   }
 }

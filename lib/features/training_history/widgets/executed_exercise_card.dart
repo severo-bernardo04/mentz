@@ -229,7 +229,7 @@ class ExecutedExerciseCard extends StatelessWidget {
                           SizedBox(
                             width: 80,
                             child: Text(
-                              s.load,
+                              s.loadLabel,
                               style: const TextStyle(
                                 fontWeight: FontWeight.w700,
                                 fontSize: 12,
@@ -239,7 +239,7 @@ class ExecutedExerciseCard extends StatelessWidget {
                           SizedBox(
                             width: 60,
                             child: Text(
-                              s.reps,
+                              s.repsLabel,
                               style: const TextStyle(
                                 fontWeight: FontWeight.w600,
                                 fontSize: 12,

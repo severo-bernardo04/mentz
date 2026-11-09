@@ -216,7 +216,7 @@ class SpreadsheetDataTable extends StatelessWidget {
           if (exercise.sets.isNotEmpty) ...[
             const SizedBox(height: 6),
             Text(
-              '${exercise.sets.first.load} × ${exercise.sets.first.reps}',
+              '${exercise.sets.first.loadLabel} × ${exercise.sets.first.repsLabel}',
               style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
             ),
           ],
@@ -259,7 +259,7 @@ class SpreadsheetDataTable extends StatelessWidget {
                   ),
                   const SizedBox(width: 8),
                   Text(
-                    '${set.load} × ${set.reps}',
+                    '${set.loadLabel} × ${set.repsLabel}',
                     style: const TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.w700,
