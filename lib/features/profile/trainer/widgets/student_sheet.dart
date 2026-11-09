@@ -23,7 +23,7 @@ class StudentSheet extends StatelessWidget {
     // TODO: buscar o perfil real do aluno pelo id (s.id)
     context.pushFade(
       StudentProfilePage(
-        student: StudentProfile.sample(name: s.name),
+        student: StudentProfile(name: s.name, email: ''),
         isOwnerView: false,
       ),
     );

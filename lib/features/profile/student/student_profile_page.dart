@@ -30,16 +30,18 @@ class StudentProfilePage extends StatelessWidget {
       title: isOwnerView ? 'Meu perfil' : 'Perfil do aluno',
       header: ProfileHeader(
         name: student.name,
-        subtitle: student.plan,
+        subtitle: student.plan ?? 'Aluno',
         photoUrl: student.photoUrl,
         onEditPhoto: isOwnerView ? () => _changePhoto(context) : null,
         chips: [
-          StatusChip.active(
-            student.enrollmentActive,
-            activeLabel: 'Matrícula ativa',
-            inactiveLabel: 'Matrícula inativa',
-          ),
-          StatusChip(label: student.goal.label, icon: student.goal.icon),
+          if (student.enrollmentActive != null)
+            StatusChip.active(
+              student.enrollmentActive!,
+              activeLabel: 'Matrícula ativa',
+              inactiveLabel: 'Matrícula inativa',
+            ),
+          if (student.goal != null)
+            StatusChip(label: student.goal!.label, icon: student.goal!.icon),
         ],
       ),
       tabs: const [

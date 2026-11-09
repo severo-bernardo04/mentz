@@ -7,7 +7,6 @@ import 'services/settings_service.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
-  await SettingsService().loadSettings();
   runApp(const MyApp());
 }
 

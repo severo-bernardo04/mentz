@@ -10,6 +10,11 @@ class AppUser {
   final DateTime? createdAt;
   final String? photoBase64;
 
+  // Preferências guardadas no campo `settings` do documento
+  final String? themeMode;
+  final String? language;
+  final String? timerDisplayMode;
+
   const AppUser({
     required this.uid,
     required this.name,
@@ -17,10 +22,15 @@ class AppUser {
     required this.role,
     this.phone,
     this.createdAt,
-    this.photoBase64
+    this.photoBase64,
+    this.themeMode,
+    this.language,
+    this.timerDisplayMode,
   });
 
   factory AppUser.fromMap(String uid, Map<String, dynamic> map) {
+    final settings = map['settings'] as Map<String, dynamic>? ?? const {};
+
     return AppUser(
       uid: uid,
       name: map['name'] as String? ?? '',
@@ -32,6 +42,9 @@ class AppUser {
       phone: map['phone'] as String?,
       createdAt: (map['createdAt'] as Timestamp?)?.toDate(),
       photoBase64: map['photoBase64'] as String?,
+      themeMode: settings['themeMode'] as String?,
+      language: settings['language'] as String?,
+      timerDisplayMode: settings['timerDisplayMode'] as String?,
     );
   }
 }

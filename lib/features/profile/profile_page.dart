@@ -6,10 +6,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:mentz/models/app_user.dart';
 import 'package:mentz/services/user_profile_service.dart';
 
-/// Escolhe o perfil certo de acordo com o papel do usuário logado.
-///
-/// Por enquanto usa dados de exemplo. Quando houver backend, troque
-/// `StudentProfile.sample` / `TrainerProfile.sample` pelos dados reais.
+/// Escolhe o perfil certo de acordo com o papel do usuário logado,
+/// exibindo os dados reais de `users/{uid}`.
 class ProfilePage extends StatelessWidget {
   final UserRole role;
   final String? userName;
@@ -31,18 +29,27 @@ class ProfilePage extends StatelessWidget {
       stream: UserProfileService().watch(uid),
       builder: (context, snap){
         final u = snap.data;
-        final name = u?.name ?? userName;
-        final email = u?.email ?? userEmail;
+        final name = u?.name ?? userName ?? '';
+        final email = u?.email ?? userEmail ?? '';
+        final phone = u?.phone;
         final photo = u?.photoBase64;
 
         return switch (role) {
           UserRole.student => StudentProfilePage(
-            student: StudentProfile.sample(
-                name: name, email: email, photo: photo),
+            student: StudentProfile(
+              name: name,
+              email: email,
+              phone: phone,
+              photoUrl: photo,
+            ),
           ),
           UserRole.trainer => TrainerProfilePage(
-            trainer: TrainerProfile.sample(
-                name: name, email: email, photo: photo),
+            trainer: TrainerProfile(
+              name: name,
+              email: email,
+              phone: phone,
+              photoUrl: photo,
+            ),
           ),
         };
       },

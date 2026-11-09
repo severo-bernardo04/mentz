@@ -5,6 +5,7 @@ import 'package:mentz/features/profile/student/widgets/training_week_row.dart';
 import 'package:mentz/features/profile/widgets/privacy_banner.dart';
 import 'package:mentz/features/profile/widgets/profile_tab_page.dart';
 import 'package:mentz/models/profile_models.dart';
+import 'package:mentz/services/training_history_service.dart';
 import 'package:mentz/widgets/empty_hint.dart';
 import 'package:mentz/widgets/section_card.dart';
 import 'package:mentz/widgets/simple_line_chart.dart';
@@ -42,8 +43,18 @@ class _PhysicalTabState extends State<PhysicalTab> {
     final theme = Theme.of(context);
     final s = widget.student;
 
-    final delta = s.currentWeight - s.weightHistory.first.kg;
-    final deltaText = '${delta >= 0 ? '+' : ''}${delta.toStringAsFixed(1)} kg';
+    final height = s.heightCm;
+    final weight = s.currentWeight;
+    final delta = weight == null ? null : weight - s.weightHistory.first.kg;
+    final deltaText = delta == null
+        ? ''
+        : '${delta >= 0 ? '+' : ''}${delta.toStringAsFixed(1)} kg';
+
+    // Treinos realizados nos últimos 7 dias, a partir do histórico real
+    final doneThisWeek = TrainingHistoryService().sessions
+        .where((h) => DateTime.now().difference(h.date).inDays < 7)
+        .length;
+    final target = s.weeklyTarget;
 
     return ProfileTabPage(
       children: [
@@ -60,7 +71,9 @@ class _PhysicalTabState extends State<PhysicalTab> {
               Expanded(
                 child: StatTile(
                   icon: Icons.height,
-                  value: _mask('${s.heightCm.toStringAsFixed(0)} cm'),
+                  value: height == null
+                      ? '—'
+                      : _mask('${height.toStringAsFixed(0)} cm'),
                   label: 'Altura',
                 ),
               ),
@@ -68,7 +81,9 @@ class _PhysicalTabState extends State<PhysicalTab> {
               Expanded(
                 child: StatTile(
                   icon: Icons.monitor_weight_outlined,
-                  value: _mask('${s.currentWeight.toStringAsFixed(1)} kg'),
+                  value: weight == null
+                      ? '—'
+                      : _mask('${weight.toStringAsFixed(1)} kg'),
                   label: 'Peso atual',
                 ),
               ),
@@ -80,22 +95,30 @@ class _PhysicalTabState extends State<PhysicalTab> {
           title: 'Frequência semanal',
           icon: Icons.calendar_view_week_outlined,
           trailing: Text(
-            '${s.doneThisWeek}/${s.weeklyTarget} treinos',
+            target == null
+                ? '$doneThisWeek treinos'
+                : '$doneThisWeek/$target treinos',
             style: theme.textTheme.labelLarge?.copyWith(
               color: theme.colorScheme.primary,
               fontWeight: FontWeight.w800,
             ),
           ),
-          child: TrainingWeekRow(trainingDays: s.trainingDays),
+          child: s.trainingDays.isEmpty
+              ? const EmptyHint('Nenhum dia de treino definido.')
+              : TrainingWeekRow(trainingDays: s.trainingDays),
         ),
         SectionCard(
           title: 'Histórico de peso',
           icon: Icons.show_chart,
-          trailing: StatusChip(
-            label: _mask(deltaText),
-            icon: delta <= 0 ? Icons.trending_down : Icons.trending_up,
-          ),
-          child: _hidden
+          trailing: delta == null
+              ? null
+              : StatusChip(
+                  label: _mask(deltaText),
+                  icon: delta <= 0 ? Icons.trending_down : Icons.trending_up,
+                ),
+          child: s.weightHistory.isEmpty
+              ? const EmptyHint('Nenhum peso registrado.')
+              : _hidden
               ? const EmptyHint('Valores ocultos')
               : SimpleLineChart(
                   values: [for (final w in s.weightHistory) w.kg],
@@ -108,12 +131,14 @@ class _PhysicalTabState extends State<PhysicalTab> {
         SectionCard(
           title: 'Avaliações físicas',
           icon: Icons.assignment_outlined,
-          child: Column(
-            children: [
-              for (final a in s.assessments)
-                AssessmentTile(assessment: a, hidden: _hidden),
-            ],
-          ),
+          child: s.assessments.isEmpty
+              ? const EmptyHint('Nenhuma avaliação registrada.')
+              : Column(
+                  children: [
+                    for (final a in s.assessments)
+                      AssessmentTile(assessment: a, hidden: _hidden),
+                  ],
+                ),
         ),
       ],
     );

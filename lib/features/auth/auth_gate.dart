@@ -5,6 +5,7 @@ import 'package:mentz/features/home/home_page.dart';
 import 'package:mentz/models/app_user.dart';
 import 'package:mentz/services/auth_service.dart';
 import 'package:mentz/services/exercise_catalog_service.dart';
+import 'package:mentz/services/settings_service.dart';
 import 'package:mentz/services/training_chart_service.dart';
 import 'package:mentz/services/training_history_service.dart';
 import 'package:mentz/services/user_profile_service.dart';
@@ -54,7 +55,8 @@ class _SignedInGateState extends State<_SignedInGate> {
   @override
   void initState() {
     super.initState();
-    // Carrega catálogo, planilhas e histórico enquanto este usuário estiver logado
+    // Carrega preferências, catálogo, planilhas e histórico deste usuário
+    SettingsService().watchUser(widget.uid);
     ExerciseCatalogService().watchUser(widget.uid);
     TrainingChartService().watchUser(widget.uid);
     TrainingHistoryService().watchUser(widget.uid);
@@ -62,6 +64,7 @@ class _SignedInGateState extends State<_SignedInGate> {
 
   @override
   void dispose() {
+    SettingsService().stopWatching(widget.uid);
     ExerciseCatalogService().stopWatching(widget.uid);
     TrainingChartService().stopWatching(widget.uid);
     TrainingHistoryService().stopWatching(widget.uid);

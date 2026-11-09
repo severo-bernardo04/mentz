@@ -54,15 +54,16 @@ class _TrainerProfilePageState extends State<TrainerProfilePage> {
       title: 'Meu perfil',
       header: ProfileHeader(
         name: t.name,
-        subtitle: t.role.label,
+        subtitle: t.role?.label ?? 'Treinador',
         photoUrl: t.photoUrl,
         onEditPhoto: () => _changePhoto(context),
         chips: [
-          StatusChip.active(
-            t.employmentActive,
-            activeLabel: 'Vínculo ativo',
-            inactiveLabel: 'Vínculo inativo',
-          ),
+          if (t.employmentActive != null)
+            StatusChip.active(
+              t.employmentActive!,
+              activeLabel: 'Vínculo ativo',
+              inactiveLabel: 'Vínculo inativo',
+            ),
           if (t.cref != null)
             StatusChip(label: 'CREF ${t.cref}', icon: Icons.verified_outlined),
         ],

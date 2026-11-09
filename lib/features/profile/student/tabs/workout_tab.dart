@@ -43,7 +43,7 @@ class _WorkoutTabState extends State<WorkoutTab> {
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
     final s = widget.student;
-    final plan = s.workouts[_selected];
+    final plan = s.workouts.isEmpty ? null : s.workouts[_selected];
 
     return ProfileTabPage(
       children: [
@@ -55,52 +55,56 @@ class _WorkoutTabState extends State<WorkoutTab> {
               InfoRow(
                 icon: Icons.play_circle_outline,
                 label: 'Programado',
-                value: s.nextWorkoutLabel,
+                value: s.nextWorkoutLabel ?? notInformed,
               ),
               InfoRow(
                 icon: Icons.support_agent_outlined,
                 label: 'Treinador responsável',
-                value: s.trainerName,
+                value: s.trainerName ?? notInformed,
               ),
               const SizedBox(height: 8),
-              TrainingWeekRow(trainingDays: s.trainingDays),
+              if (s.trainingDays.isNotEmpty)
+                TrainingWeekRow(trainingDays: s.trainingDays),
             ],
           ),
         ),
         SectionCard(
           title: 'Treino atual',
           icon: Icons.fitness_center,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Wrap(
-                spacing: 8,
-                children: [
-                  for (var i = 0; i < s.workouts.length; i++)
-                    ChoiceChip(
-                      label: Text('Treino ${s.workouts[i].name}'),
-                      selected: _selected == i,
-                      onSelected: (_) => setState(() => _selected = i),
+          child: plan == null
+              ? const EmptyHint('Nenhuma ficha de treino.')
+              : Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Wrap(
+                      spacing: 8,
+                      children: [
+                        for (var i = 0; i < s.workouts.length; i++)
+                          ChoiceChip(
+                            label: Text('Treino ${s.workouts[i].name}'),
+                            selected: _selected == i,
+                            onSelected: (_) => setState(() => _selected = i),
+                          ),
+                      ],
                     ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              Text(
-                plan.focus,
-                style: theme.textTheme.titleSmall?.copyWith(
-                  color: cs.onSurfaceVariant,
+                    const SizedBox(height: 12),
+                    Text(
+                      plan.focus,
+                      style: theme.textTheme.titleSmall?.copyWith(
+                        color: cs.onSurfaceVariant,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    for (var i = 0; i < plan.exercises.length; i++)
+                      ExerciseTile(
+                        index: i + 1,
+                        exercise: plan.exercises[i],
+                        checked: _checked.contains('${plan.id}-$i'),
+                        onChanged: (done) =>
+                            _toggleExercise('${plan.id}-$i', done),
+                      ),
+                  ],
                 ),
-              ),
-              const SizedBox(height: 8),
-              for (var i = 0; i < plan.exercises.length; i++)
-                ExerciseTile(
-                  index: i + 1,
-                  exercise: plan.exercises[i],
-                  checked: _checked.contains('${plan.id}-$i'),
-                  onChanged: (done) => _toggleExercise('${plan.id}-$i', done),
-                ),
-            ],
-          ),
         ),
         SectionCard(
           title: 'Treinos concluídos',
