@@ -6,7 +6,7 @@ import 'package:mentz/widgets/section_card.dart';
 
 /// Lista reordenável de exercícios da ficha.
 class ExercisesSection extends StatelessWidget {
-  final List<Exercise> exercises;
+  final List<WorkoutExercise> exercises;
   final VoidCallback onAdd;
   final ValueChanged<int> onEdit;
   final ValueChanged<int> onDelete;

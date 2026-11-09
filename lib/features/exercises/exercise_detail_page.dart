@@ -100,15 +100,6 @@ class ExerciseDetailPage extends StatelessWidget {
                           label: exercise.equipment!,
                           icon: Icons.hardware_outlined,
                         ),
-                      StatusChip(
-                        label: '${exercise.sets} séries × ${exercise.reps}',
-                        icon: Icons.repeat,
-                        color: cs.primary,
-                      ),
-                      StatusChip(
-                        label: exercise.restLabel,
-                        icon: Icons.timer_outlined,
-                      ),
                     ],
                   ),
                 ],

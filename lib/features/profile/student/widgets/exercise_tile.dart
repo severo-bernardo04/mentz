@@ -5,7 +5,7 @@ import 'package:mentz/widgets/status_chip.dart';
 /// Exercício da ficha, com checkbox para marcar como feito.
 class ExerciseTile extends StatelessWidget {
   final int index;
-  final Exercise exercise;
+  final WorkoutExercise exercise;
   final bool checked;
   final ValueChanged<bool> onChanged;
 
@@ -70,7 +70,7 @@ class ExerciseTile extends StatelessWidget {
                   spacing: 6,
                   runSpacing: 6,
                   children: [
-                    StatusChip(label: '${e.sets} × ${e.reps}'),
+                    StatusChip(label: e.setsLabel),
                     StatusChip(label: e.load, icon: Icons.scale_outlined),
                     StatusChip(label: e.restLabel, icon: Icons.timer_outlined),
                   ],

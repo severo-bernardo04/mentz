@@ -4,7 +4,7 @@ import 'package:mentz/models/profile_models.dart';
 /// Exercício na lista do editor: arrastar, editar (toque) e remover.
 class EditableExerciseTile extends StatelessWidget {
   final int index;
-  final Exercise exercise;
+  final WorkoutExercise exercise;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
 
@@ -39,7 +39,7 @@ class EditableExerciseTile extends StatelessWidget {
         ),
         title: Text(e.name, style: const TextStyle(fontWeight: FontWeight.w700)),
         subtitle: Text(
-          '${e.sets} × ${e.reps}  •  ${e.load}  •  descanso ${e.restLabel}',
+          '${e.setsLabel}  •  ${e.load}  •  descanso ${e.restLabel}',
         ),
         trailing: IconButton(
           tooltip: 'Remover',

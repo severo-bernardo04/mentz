@@ -7,9 +7,9 @@ import 'package:mentz/widgets/app_button.dart';
 import 'package:mentz/widgets/app_text_field.dart';
 
 /// Formulário (bottom sheet) para adicionar/editar um exercício.
-/// Devolve o [Exercise] via `Navigator.pop`.
+/// Devolve o [WorkoutExercise] via `Navigator.pop`.
 class ExerciseSheet extends StatefulWidget {
-  final Exercise? exercise;
+  final WorkoutExercise? exercise;
 
   const ExerciseSheet({super.key, this.exercise});
 
@@ -25,10 +25,12 @@ class _ExerciseSheetState extends State<ExerciseSheet> {
   late final _name = TextEditingController(text: widget.exercise?.name ?? '');
   late final _muscle =
       TextEditingController(text: widget.exercise?.muscle ?? '');
-  late final _reps = TextEditingController(text: widget.exercise?.reps ?? '12');
+  late final _reps = TextEditingController(
+    text: widget.exercise?.plannedSets.first.repsInput ?? '10-12',
+  );
   late final _load = TextEditingController(text: widget.exercise?.load ?? '');
 
-  late int _sets = widget.exercise?.sets ?? 3;
+  late int _sets = widget.exercise?.plannedSets.length ?? 3;
   late int _rest = _restOptions.contains(widget.exercise?.restSeconds)
       ? widget.exercise!.restSeconds
       : 60;
@@ -57,10 +59,6 @@ class _ExerciseSheetState extends State<ExerciseSheet> {
       _catalogExercise = selected;
       _name.text = selected.name;
       _muscle.text = selected.displayPrimaryMuscle;
-      _sets = selected.sets;
-      _reps.text = selected.reps;
-      if (selected.load != '—') _load.text = selected.load;
-      _rest = selected.restSeconds;
     });
   }
 
@@ -68,27 +66,25 @@ class _ExerciseSheetState extends State<ExerciseSheet> {
     if (!_formKey.currentState!.validate()) return;
 
     final load = _load.text.trim();
+    // Dados fixos vêm do catálogo; séries, carga e descanso são deste treino
+    final catalog = _catalogExercise ?? widget.exercise?.exercise;
 
     Navigator.of(context).pop(
-      Exercise(
-        name: _name.text.trim(),
-        muscle: _muscle.text.trim(),
-        sets: _sets,
-        reps: _reps.text.trim(),
+      WorkoutExercise(
+        exercise: Exercise(
+          name: _name.text.trim(),
+          muscle: _muscle.text.trim(),
+          nameEn: catalog?.nameEn,
+          primaryMuscle: catalog?.primaryMuscle,
+          highActivationMuscles: catalog?.highActivationMuscles ?? const [],
+          secondaryMuscles: catalog?.secondaryMuscles ?? const [],
+          equipment: catalog?.equipment,
+          instructions: catalog?.instructions,
+        ),
+        // A faixa já foi validada pelo Form; todas as séries usam a mesma faixa
+        plannedSets: List.filled(_sets, PlannedSet.tryParse(_reps.text)!),
         load: load.isEmpty ? '—' : load,
         restSeconds: _rest,
-        nameEn: _catalogExercise?.nameEn ?? widget.exercise?.nameEn,
-        primaryMuscle:
-            _catalogExercise?.primaryMuscle ?? widget.exercise?.primaryMuscle,
-        highActivationMuscles: _catalogExercise?.highActivationMuscles ??
-            widget.exercise?.highActivationMuscles ??
-            const [],
-        secondaryMuscles: _catalogExercise?.secondaryMuscles ??
-            widget.exercise?.secondaryMuscles ??
-            const [],
-        equipment: _catalogExercise?.equipment ?? widget.exercise?.equipment,
-        instructions:
-            _catalogExercise?.instructions ?? widget.exercise?.instructions,
       ),
     );
   }
@@ -145,9 +141,11 @@ class _ExerciseSheetState extends State<ExerciseSheet> {
                   Expanded(
                     child: AppTextField(
                       controller: _reps,
-                      label: 'Repetições',
+                      label: 'Faixa (ex: 8-10)',
                       icon: Icons.repeat,
-                      validator: (v) => Validators.notEmpty(v, 'Obrigatório'),
+                      validator: (v) => PlannedSet.tryParse(v ?? '') == null
+                          ? 'Use uma faixa válida, como 8-10.'
+                          : null,
                     ),
                   ),
                   const SizedBox(width: 12),
