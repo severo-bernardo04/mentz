@@ -295,4 +295,94 @@ void main() {
       expect(find.byType(HomePage), findsOneWidget);
     });
   });
+
+  group('Tipos de série e drop set', () {
+    test('existem apenas Aquecimento, Reconhecimento e Trabalho', () {
+      expect(
+        SetType.values.map((t) => t.label),
+        ['Aquecimento', 'Reconhecimento', 'Trabalho'],
+      );
+    });
+
+    test('cada tipo tem cor própria, diferente da etiqueta de drop set', () {
+      final colors = SetType.values.map((t) => t.color).toSet();
+
+      expect(colors.length, SetType.values.length);
+      expect(colors, isNot(contains(dropSetColor)));
+    });
+
+    test('drop set acompanha Trabalho e Aquecimento, mas não Reconhecimento', () {
+      ExecutedSet build(SetType type) => ExecutedSet(
+        setNumber: 1,
+        type: type,
+        load: '40 kg',
+        reps: '10',
+        isDropSet: true,
+      );
+
+      expect(build(SetType.working).isDropSet, isTrue);
+      expect(build(SetType.warmup).isDropSet, isTrue);
+      expect(() => build(SetType.feeder), throwsAssertionError);
+    });
+
+    test('toMap e fromMap preservam o tipo e o drop set', () {
+      const original = ExecutedSet(
+        setNumber: 2,
+        type: SetType.warmup,
+        load: '20 kg',
+        reps: '15',
+        isDropSet: true,
+      );
+
+      final restored = ExecutedSet.fromMap(original.toMap());
+
+      expect(restored.type, SetType.warmup);
+      expect(restored.isDropSet, isTrue);
+    });
+
+    testWidgets('detalhe do treino exibe o tipo da série e o drop set', (
+      tester,
+    ) async {
+      tester.view.physicalSize = const Size(1200, 2400);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      await tester.pumpWidget(
+        createTestApp(
+          WorkoutSessionDetailPage(
+            session: CompletedWorkout(
+              DateTime(2026, 11, 1),
+              'A',
+              60,
+              executedExercises: const [
+                ExecutedExercise(
+                  name: 'Supino reto',
+                  sets: [
+                    ExecutedSet(
+                      setNumber: 1,
+                      type: SetType.feeder,
+                      load: '30 kg',
+                      reps: '8',
+                    ),
+                    ExecutedSet(
+                      setNumber: 2,
+                      load: '60 kg',
+                      reps: '10',
+                      isDropSet: true,
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Reconhecimento'), findsOneWidget);
+      expect(find.text('Trabalho'), findsOneWidget);
+      expect(find.text(dropSetLabel), findsOneWidget);
+    });
+  });
 }

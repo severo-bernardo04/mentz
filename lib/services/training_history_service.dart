@@ -72,7 +72,7 @@ class TrainingHistoryService extends ChangeNotifier {
             sets: [
               ExecutedSet(
                 setNumber: 1,
-                type: SetType.working,
+                type: SetType.feeder,
                 load: '24 kg',
                 reps: '12',
               ),
@@ -108,7 +108,8 @@ class TrainingHistoryService extends ChangeNotifier {
               ),
               ExecutedSet(
                 setNumber: 3,
-                type: SetType.dropSet,
+                type: SetType.working,
+                isDropSet: true,
                 load: '40 kg / 30 kg',
                 reps: '12 + 6',
               ),
@@ -156,7 +157,7 @@ class TrainingHistoryService extends ChangeNotifier {
               ),
               ExecutedSet(
                 setNumber: 3,
-                type: SetType.failure,
+                type: SetType.working,
                 load: '32.5 kg',
                 reps: '13',
               ),
@@ -268,7 +269,8 @@ class TrainingHistoryService extends ChangeNotifier {
               ),
               ExecutedSet(
                 setNumber: 3,
-                type: SetType.dropSet,
+                type: SetType.working,
+                isDropSet: true,
                 load: '10 kg / 6 kg',
                 reps: '12 + 6',
               ),

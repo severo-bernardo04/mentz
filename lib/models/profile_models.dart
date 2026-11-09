@@ -189,15 +189,22 @@ class WorkoutPlan {
         assignedStudents = assignedStudents ?? [];
 }
 
+/// Tipos de série, cada um com sua cor na interface.
+/// Apenas [working] conta como série válida para fins de evolução.
 enum SetType {
-  warmup('Aquecimento'),
-  working('Série válida'),
-  failure('Falha'),
-  dropSet('Drop set');
+  warmup('Aquecimento', Color(0xFF757575)), // Cinza
+  feeder('Reconhecimento', Color(0xFF8E24AA)), // Roxo
+  working('Trabalho', Color(0xFF1E88E5)); // Azul
 
   final String label;
-  const SetType(this.label);
+  final Color color;
+  const SetType(this.label, this.color);
 }
+
+/// Etiqueta do drop set, que não é um tipo: complementa uma série de
+/// Trabalho ou Aquecimento. A cor própria evita confusão com o Reconhecimento.
+const dropSetLabel = 'Drop set';
+const dropSetColor = Color(0xFF00897B); // Verde-azulado
 
 class ExecutedSet {
   final int setNumber;
@@ -206,13 +213,20 @@ class ExecutedSet {
   final String reps;
   final bool completed;
 
+  /// Indica se a série tem drop set. Não pode acompanhar [SetType.feeder].
+  final bool isDropSet;
+
   const ExecutedSet({
     required this.setNumber,
     this.type = SetType.working,
     required this.load,
     required this.reps,
     this.completed = true,
-  });
+    this.isDropSet = false,
+  }) : assert(
+         !isDropSet || type != SetType.feeder,
+         'Drop set só pode acompanhar séries de Trabalho ou Aquecimento.',
+       );
 
   ExecutedSet copyWith({
     int? setNumber,
@@ -220,6 +234,7 @@ class ExecutedSet {
     String? load,
     String? reps,
     bool? completed,
+    bool? isDropSet,
   }) {
     return ExecutedSet(
       setNumber: setNumber ?? this.setNumber,
@@ -227,6 +242,7 @@ class ExecutedSet {
       load: load ?? this.load,
       reps: reps ?? this.reps,
       completed: completed ?? this.completed,
+      isDropSet: isDropSet ?? this.isDropSet,
     );
   }
 
@@ -236,6 +252,7 @@ class ExecutedSet {
         'load': load,
         'reps': reps,
         'completed': completed,
+        'isDropSet': isDropSet,
       };
 
   factory ExecutedSet.fromMap(Map<String, dynamic> map) {
@@ -248,6 +265,7 @@ class ExecutedSet {
       load: map['load'] as String? ?? '—',
       reps: map['reps'] as String? ?? '—',
       completed: map['completed'] as bool? ?? true,
+      isDropSet: map['isDropSet'] as bool? ?? false,
     );
   }
 }

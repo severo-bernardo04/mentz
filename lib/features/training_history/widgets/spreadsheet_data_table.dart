@@ -238,14 +238,14 @@ class SpreadsheetDataTable extends StatelessWidget {
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  // Número da série em um "badge" colorido
+                  // Número da série em um "badge" com a cor do tipo da série
                   Container(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 6,
                       vertical: 1,
                     ),
                     decoration: BoxDecoration(
-                      color: cs.primary.withAlpha(25),
+                      color: set.type.color.withAlpha(25),
                       borderRadius: BorderRadius.circular(6),
                     ),
                     child: Text(
@@ -253,7 +253,7 @@ class SpreadsheetDataTable extends StatelessWidget {
                       style: TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w800,
-                        color: cs.primary,
+                        color: set.type.color,
                       ),
                     ),
                   ),
@@ -265,10 +265,10 @@ class SpreadsheetDataTable extends StatelessWidget {
                       fontWeight: FontWeight.w700,
                     ),
                   ),
-                  if (set.type == SetType.dropSet)
+                  if (set.isDropSet)
                     Padding(
                       padding: const EdgeInsets.only(left: 6),
-                      child: _buildTag('drop', Colors.purple.shade700),
+                      child: _buildTag('drop', dropSetColor),
                     ),
                 ],
               ),
