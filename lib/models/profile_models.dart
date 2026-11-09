@@ -203,9 +203,10 @@ class Exercise {
         'instructions': instructions,
       };
 
-  factory Exercise.fromMap(Map<String, dynamic> map) {
+  /// [id] é o identificador do documento no Firestore.
+  factory Exercise.fromMap(String id, Map<String, dynamic> map) {
     return Exercise(
-      id: map['id'] as String?,
+      id: id,
       name: map['name'] as String? ?? '',
       muscle: map['muscle'] as String? ?? '',
       nameEn: map['nameEn'] as String?,

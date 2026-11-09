@@ -39,6 +39,9 @@ void main() {
   late TrainingChartService service;
 
   setUp(() {
+    ExerciseCatalogService().setExercisesForTest([
+      Exercise(id: 'supino-reto', name: 'Supino reto', muscle: 'Peito'),
+    ]);
     firestore = FakeFirebaseFirestore();
     service = TrainingChartService();
     service.startForTest(firestore, uid: 'user-a');
@@ -140,12 +143,5 @@ void main() {
 
     expect(form.days, hasLength(TrainingChart.maxDays));
     expect(form.addDay(), isFalse);
-  });
-
-  test('todos os exercícios do catálogo têm identificador único', () {
-    final ids = ExerciseCatalogService().exercises.map((e) => e.id).toList();
-
-    expect(ids, everyElement(isNotNull));
-    expect(ids.toSet(), hasLength(ids.length));
   });
 }

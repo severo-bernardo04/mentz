@@ -63,8 +63,8 @@ class ExerciseCatalogController extends ChangeNotifier {
     try {
       final list = await service.loadExercises();
       _exercises = List<Exercise>.from(list);
-    } catch (e) {
-      _errorMessage = 'Erro ao carregar o catálogo de exercícios: $e';
+    } catch (_) {
+      _errorMessage = 'Não foi possível carregar o catálogo de exercícios.';
     } finally {
       _loading = false;
       notifyListeners();

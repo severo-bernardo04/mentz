@@ -12,7 +12,10 @@ import 'exercise_catalog_service.dart';
 class TrainingChartService extends ChangeNotifier {
   static final TrainingChartService _instance = TrainingChartService._internal();
   factory TrainingChartService() => _instance;
-  TrainingChartService._internal();
+  TrainingChartService._internal() {
+    // Refaz as planilhas quando o catálogo chega ou muda
+    ExerciseCatalogService().addListener(_rebuildCharts);
+  }
 
   /// Tempo máximo de espera pela confirmação do servidor. Sem internet, a
   /// escrita fica na fila do Firestore e é enviada quando a conexão voltar.
@@ -20,6 +23,7 @@ class TrainingChartService extends ChangeNotifier {
 
   FirebaseFirestore? _firestoreOverride;
   StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? _subscription;
+  QuerySnapshot<Map<String, dynamic>>? _lastSnapshot;
   String? _uid;
   List<TrainingChart> _charts = [];
   bool _loading = false;
@@ -44,6 +48,7 @@ class TrainingChartService extends ChangeNotifier {
 
     _subscription?.cancel();
     _uid = uid;
+    _lastSnapshot = null;
     _charts = [];
     _loading = true;
     _errorMessage = null;
@@ -62,13 +67,22 @@ class TrainingChartService extends ChangeNotifier {
     _subscription?.cancel();
     _subscription = null;
     _uid = null;
+    _lastSnapshot = null;
     _charts = [];
     _loading = false;
     _errorMessage = null;
   }
 
   void _onSnapshot(QuerySnapshot<Map<String, dynamic>> snapshot) {
+    _lastSnapshot = snapshot;
+    _rebuildCharts();
+  }
+
+  /// Monta as planilhas com os dados do catálogo, assim que ele estiver pronto.
+  void _rebuildCharts() {
+    final snapshot = _lastSnapshot;
     final catalog = ExerciseCatalogService();
+    if (snapshot == null || !catalog.isLoaded) return;
 
     try {
       _charts = [

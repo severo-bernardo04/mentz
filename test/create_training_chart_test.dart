@@ -8,6 +8,7 @@ import 'package:mentz/features/training/widgets/exercise_sheet.dart';
 import 'package:mentz/models/profile_models.dart';
 import 'package:mentz/models/training_chart.dart';
 import 'package:mentz/features/training/create_training_chart_page.dart';
+import 'package:mentz/services/exercise_catalog_service.dart';
 import 'package:mentz/services/training_chart_service.dart';
 
 /// Abre o dia [index] no acordeão, caso ele esteja fechado.
@@ -23,6 +24,9 @@ void main() {
 
   setUp(() {
     service = TrainingChartService();
+    ExerciseCatalogService().setExercisesForTest([
+      Exercise(id: 'supino-reto', name: 'Supino reto', muscle: 'Peito'),
+    ]);
     service.startForTest(FakeFirebaseFirestore(), uid: 'test-user');
   });
 
