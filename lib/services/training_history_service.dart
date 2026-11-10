@@ -112,6 +112,48 @@ class TrainingHistoryService extends ChangeNotifier {
         .timeout(_writeTimeout, onTimeout: () {});
   }
 
+  /// Sessão mais recente de [chartId] com exercícios pendentes que ainda
+  /// podem ser completados, ou null se não houver.
+  CompletedWorkout? openPendingSession(String chartId) {
+    for (final session in sessions) {
+      if (session.chartId == chartId && session.canBeCompleted) return session;
+    }
+    return null;
+  }
+
+  /// Séries do último treino em que o exercício [exerciseId] foi feito, para
+  /// servir de referência de carga e repetições. Ignora a sessão
+  /// [excludeSessionId] (a que está sendo completada). Retorna lista vazia
+  /// se o exercício nunca foi feito.
+  List<ExecutedSet> previousSetsFor(
+    String? exerciseId, {
+    String? excludeSessionId,
+  }) {
+    if (exerciseId == null) return const [];
+
+    for (final session in sessions) {
+      if (session.id != null && session.id == excludeSessionId) continue;
+
+      for (final exercise in session.executedExercises) {
+        if (exercise.exerciseId != exerciseId) continue;
+        if (exercise.sets.any((s) => s.reps > 0)) return exercise.sets;
+      }
+    }
+    return const [];
+  }
+
+  /// Ignora os pendentes de [session]: ela deixa de ser oferecida para
+  /// completar, mas os exercícios continuam como não realizados.
+  Future<void> ignorePending(CompletedWorkout session) {
+    final id = session.id;
+    if (id == null) throw StateError('Sessão sem identificador.');
+
+    return _collection
+        .doc(id)
+        .update({'pendingIgnored': true})
+        .timeout(_writeTimeout, onTimeout: () {});
+  }
+
   /// Retorna as sessões associadas a um plano/dia específico (ex: 'A', 'B', 'C').
   List<CompletedWorkout> getSessionsForWorkout(String plan, {String? chartName}) {
     return sessions.where((s) {

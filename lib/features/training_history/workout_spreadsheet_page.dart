@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../core/utils/text_fit.dart';
 import '../../services/training_history_service.dart';
 import '../../widgets/app_background.dart';
 import '../../widgets/status_chip.dart';
@@ -119,41 +120,86 @@ class _WorkoutSpreadsheetPageState extends State<WorkoutSpreadsheetPage>
     );
   }
 
-  /// Abas dos dias do ciclo (Treino A, B, C...) no rodapé da tela, como as abas de planilha do Excel.
-  /// Formato de "pílulas": a aba selecionada ganha fundo colorido, fonte maior e mais altura de toque.
+  /// Até este número de abas, elas dividem a largura; acima, a barra rola.
+  static const _maxFixedTabs = 4;
+
+  /// Largura do texto de cada aba quando a barra rola.
+  static const _scrollableLabelWidth = 110.0;
+
+  /// Espaço lateral de cada aba, entre o texto e a borda da pílula.
+  static const _tabHorizontalPadding = 8.0;
+
+  /// Abas dos dias do ciclo no rodapé da tela, como as abas de planilha do Excel.
+  /// Cada aba mostra só o nome dado ao treino (ex: "FULL BODY 1").
+  ///
+  /// Para caber nomes longos, todas as abas usam o mesmo tamanho de fonte: o
+  /// maior (até 16) em que todos os nomes cabem em até 2 linhas sem quebrar
+  /// palavras, nunca menor que 11 ([fitFontSize]). Assim o conjunto fica
+  /// homogêneo, sem uma aba com letra diferente das outras.
   Widget _buildPlanTabs(ColorScheme cs) {
-    return Container(
-      height: 52,
-      margin: const EdgeInsets.fromLTRB(16, 10, 16, 12),
-      padding: const EdgeInsets.all(4),
-      decoration: BoxDecoration(
-        color: cs.surface.withAlpha(220),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: cs.outlineVariant.withAlpha(90)),
-      ),
-      child: TabBar(
-        controller: _tabController,
-        isScrollable: _plans.length > 4,
-        tabAlignment: _plans.length > 4 ? TabAlignment.start : TabAlignment.fill,
-        // Indicador ocupa a aba inteira, como um botão selecionado
-        indicatorSize: TabBarIndicatorSize.tab,
-        indicator: BoxDecoration(
-          color: cs.primary,
-          borderRadius: BorderRadius.circular(14),
-        ),
-        dividerColor: Colors.transparent,
-        labelColor: cs.onPrimary,
-        unselectedLabelColor: cs.onSurfaceVariant,
-        labelStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
-        unselectedLabelStyle:
-            const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-        tabs: [
-          for (final plan in _plans)
-            Tab(
-              text: 'Treino $plan',
+    final scrollable = _plans.length > _maxFixedTabs;
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        // Largura útil: tela - margens (32) - padding (8) - borda (2)
+        final barWidth = constraints.maxWidth - 32 - 8 - 2;
+        final labelWidth = scrollable
+            ? _scrollableLabelWidth
+            : barWidth / _plans.length - _tabHorizontalPadding * 2;
+        final fontSize = fitFontSize(
+          _plans,
+          maxWidth: labelWidth,
+          // Mede com o peso da aba selecionada, o mais largo
+          style: const TextStyle(fontWeight: FontWeight.w800, height: 1.15),
+          textScaler: MediaQuery.textScalerOf(context),
+        );
+
+        return Container(
+          height: 56,
+          margin: const EdgeInsets.fromLTRB(16, 10, 16, 12),
+          padding: const EdgeInsets.all(4),
+          decoration: BoxDecoration(
+            color: cs.surface.withAlpha(220),
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(color: cs.outlineVariant.withAlpha(90)),
+          ),
+          child: TabBar(
+            controller: _tabController,
+            isScrollable: scrollable,
+            tabAlignment: scrollable ? TabAlignment.start : TabAlignment.fill,
+            labelPadding: const EdgeInsets.symmetric(
+              horizontal: _tabHorizontalPadding,
             ),
-        ],
-      ),
+            // Indicador ocupa a aba inteira, como um botão selecionado
+            indicatorSize: TabBarIndicatorSize.tab,
+            indicator: BoxDecoration(
+              color: cs.primary,
+              borderRadius: BorderRadius.circular(14),
+            ),
+            dividerColor: Colors.transparent,
+            labelColor: cs.onPrimary,
+            unselectedLabelColor: cs.onSurfaceVariant,
+            labelStyle: const TextStyle(fontWeight: FontWeight.w800),
+            unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w600),
+            tabs: [
+              for (final plan in _plans)
+                Tab(
+                  height: 48,
+                  child: SizedBox(
+                    width: scrollable ? _scrollableLabelWidth : null,
+                    child: Text(
+                      plan,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(fontSize: fontSize, height: 1.15),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        );
+      },
     );
   }
 
@@ -170,7 +216,7 @@ class _WorkoutSpreadsheetPageState extends State<WorkoutSpreadsheetPage>
         Expanded(
           child: SpreadsheetDataTable(
             sessions: sessions,
-            dayName: 'Treino $plan',
+            dayName: plan,
           ),
         ),
       ],

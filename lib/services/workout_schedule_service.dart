@@ -28,11 +28,16 @@ abstract final class WorkoutScheduleService {
     final days = [...chart.days]..sort((a, b) => a.order.compareTo(b.order));
     final today = _dateOnly(now ?? DateTime.now());
 
-    // Último treino realizado desta planilha
+    // Último treino realizado desta planilha (define a posição no ciclo) e o
+    // último dia em que se treinou nela, contando treinos completados depois
     CompletedWorkout? last;
+    DateTime? latestActivity;
     for (final session in sessions) {
       if (session.chartId != chart.id) continue;
       if (last == null || session.date.isAfter(last.date)) last = session;
+      if (latestActivity == null || session.lastActivity.isAfter(latestActivity)) {
+        latestActivity = session.lastActivity;
+      }
     }
 
     // Sem histórico, ou com um dia que saiu da planilha, começa pelo primeiro
@@ -46,16 +51,18 @@ abstract final class WorkoutScheduleService {
     final lastDate = _dateOnly(last.date);
     final config = chart.frequencyConfig;
 
+    // Nunca no mesmo dia em que se treinou, nem no passado
+    final dayAfterActivity = _addDays(_dateOnly(latestActivity!), 1);
+    final earliest = dayAfterActivity.isBefore(today) ? today : dayAfterActivity;
+
     if (config.type == WorkoutFrequencyType.intervalDays) {
       final rest = lastIndex >= 0 && lastIndex < config.intervalRestDays.length
           ? config.intervalRestDays[lastIndex]
           : 0;
       final planned = _addDays(lastDate, rest + 1);
-      return NextWorkout(nextDay, planned.isBefore(today) ? today : planned);
+      return NextWorkout(nextDay, planned.isBefore(earliest) ? earliest : planned);
     }
 
-    final dayAfterLast = _addDays(lastDate, 1);
-    final earliest = dayAfterLast.isBefore(today) ? today : dayAfterLast;
     return NextWorkout(nextDay, _scheduleFrom(chart, earliest));
   }
 

@@ -5,6 +5,7 @@ import 'package:mentz/features/profile/student/widgets/training_week_row.dart';
 import 'package:mentz/features/profile/widgets/profile_tab_page.dart';
 import 'package:mentz/features/training_history/training_history_page.dart';
 import 'package:mentz/features/training_history/workout_session_detail_page.dart';
+import 'package:mentz/features/workout_session/widgets/pending_exercises_sheet.dart';
 import 'package:mentz/models/profile_models.dart';
 import 'package:mentz/services/training_chart_service.dart';
 import 'package:mentz/services/training_history_service.dart';
@@ -160,25 +161,35 @@ class _WorkoutTabState extends State<WorkoutTab> {
                         onTap: () => context.pushFade(
                           WorkoutSessionDetailPage(session: h),
                         ),
-                        leading: CircleAvatar(
-                          radius: 18,
-                          backgroundColor: cs.primaryContainer,
-                          child: Text(
-                            h.plan,
-                            style: TextStyle(
-                              color: cs.onPrimaryContainer,
-                              fontWeight: FontWeight.w800,
+                        // Quantidade de exercícios do treino
+                        leading: Tooltip(
+                          message: 'Exercícios',
+                          child: CircleAvatar(
+                            radius: 18,
+                            backgroundColor: cs.primaryContainer,
+                            child: Text(
+                              '${h.executedExercises.length}',
+                              style: TextStyle(
+                                color: cs.onPrimaryContainer,
+                                fontWeight: FontWeight.w800,
+                              ),
                             ),
                           ),
                         ),
-                        title: Text('Treino ${h.plan}'),
+                        title: Text(h.workoutName ?? h.plan),
                         subtitle: Text(
                           '${formatDate(h.date)}  •  ${h.minutes} min',
                         ),
-                        trailing: Icon(
-                          Icons.check_circle,
-                          color: Colors.green.shade600,
-                        ),
+                        // Verde quando completo; laranja com pendentes
+                        trailing: h.isIncomplete
+                            ? const Icon(
+                                Icons.warning_amber_rounded,
+                                color: incompleteColor,
+                              )
+                            : Icon(
+                                Icons.check_circle,
+                                color: Colors.green.shade600,
+                              ),
                       ),
                     ),
                 ],

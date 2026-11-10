@@ -8,6 +8,7 @@ import '../../widgets/fade_slide_in.dart';
 import '../../widgets/section_card.dart';
 import '../../widgets/stat_tile.dart';
 import '../../widgets/status_chip.dart';
+import '../workout_session/widgets/pending_exercises_sheet.dart';
 import 'widgets/executed_exercise_card.dart';
 import 'workout_spreadsheet_page.dart';
 
@@ -22,12 +23,9 @@ class WorkoutSessionDetailPage extends StatelessWidget {
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
     final totalExercises = session.executedExercises.length;
-    final totalSets = session.executedExercises.fold<int>(
-      0,
-      (sum, e) => sum + e.sets.length,
-    );
     final completedExercises =
         session.executedExercises.where((e) => e.completed).length;
+    final pending = session.pendingExercises;
 
     return AppPageScaffold(
       title: 'Detalhes do Treino',
@@ -56,7 +54,7 @@ class WorkoutSessionDetailPage extends StatelessWidget {
                         radius: 22,
                         backgroundColor: cs.primaryContainer,
                         child: Text(
-                          session.plan,
+                          session.shortLabel,
                           style: TextStyle(
                             color: cs.onPrimaryContainer,
                             fontWeight: FontWeight.w800,
@@ -108,6 +106,11 @@ class WorkoutSessionDetailPage extends StatelessWidget {
                       ),
                     ],
                   ),
+                  // Parte do tempo foi usada para pendentes de outro treino
+                  if (session.carriedPending != null) ...[
+                    const SizedBox(height: 12),
+                    _CarriedPendingNote(session.carriedPending!),
+                  ],
                 ],
               ),
             ),
@@ -127,14 +130,6 @@ class WorkoutSessionDetailPage extends StatelessWidget {
                 const SizedBox(width: 10),
                 Expanded(
                   child: StatTile(
-                    icon: Icons.repeat_rounded,
-                    value: '$totalSets',
-                    label: 'Séries totais',
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: StatTile(
                     icon: Icons.timer_outlined,
                     value: '${session.minutes} min',
                     label: 'Duração',
@@ -143,6 +138,28 @@ class WorkoutSessionDetailPage extends StatelessWidget {
               ],
             ),
           ),
+          const SizedBox(height: 10),
+          FadeSlideIn(
+            delay: const Duration(milliseconds: 130),
+            child: _SetsByTypeTile(session.setCountByType),
+          ),
+          if (pending.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            FadeSlideIn(
+              delay: const Duration(milliseconds: 150),
+              // Sem COMPLETAR: o treino já foi finalizado
+              child: IncompleteWorkoutBanner(
+                pendingCount: pending.length,
+                onTap: () => showPendingExercisesSheet(
+                  context,
+                  names: [for (final e in pending) e.name],
+                  indexes: [
+                    for (final e in pending) session.executedExercises.indexOf(e),
+                  ],
+                ),
+              ),
+            ),
+          ],
           const SizedBox(height: 20),
           FadeSlideIn(
             delay: const Duration(milliseconds: 180),
@@ -187,6 +204,105 @@ class WorkoutSessionDetailPage extends StatelessWidget {
                 WorkoutSpreadsheetPage(initialPlan: session.plan),
               ),
             ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Indica que o tempo desta sessão também foi usado para completar
+/// pendentes de outro treino, e quais exercícios foram.
+class _CarriedPendingNote extends StatelessWidget {
+  final CarriedPending carried;
+
+  const _CarriedPendingNote(this.carried);
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+
+    return Container(
+      key: const Key('carried_pending_note'),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: cs.secondaryContainer.withAlpha(160),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(Icons.playlist_add_check_rounded, color: cs.onSecondaryContainer),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              'O tempo deste treino também foi usado para pendentes do '
+              '${carried.label}'
+              '${carried.exerciseNames.isEmpty ? '' : ': ${carried.exerciseNames.join(', ')}'}.',
+              style: TextStyle(fontSize: 13, color: cs.onSecondaryContainer),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// "Séries totais" separadas por tipo, cada uma com a cor do tipo.
+class _SetsByTypeTile extends StatelessWidget {
+  final Map<SetType, int> counts;
+
+  const _SetsByTypeTile(this.counts);
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
+    final total = counts.values.fold(0, (sum, count) => sum + count);
+
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 14),
+      decoration: BoxDecoration(
+        color: cs.surfaceContainerHighest.withAlpha(110),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(
+        children: [
+          Text(
+            'Séries totais: $total',
+            style: theme.textTheme.labelLarge?.copyWith(
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              for (final type in SetType.values)
+                Expanded(
+                  child: Column(
+                    children: [
+                      Text(
+                        '${counts[type] ?? 0}',
+                        style: theme.textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.w800,
+                          color: type.color,
+                        ),
+                      ),
+                      FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text(
+                          type.label,
+                          maxLines: 1,
+                          style: theme.textTheme.labelSmall?.copyWith(
+                            color: type.color,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+            ],
           ),
         ],
       ),

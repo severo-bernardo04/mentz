@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:mentz/models/active_workout.dart';
 import 'package:mentz/models/profile_models.dart';
 
 class AppUser {
@@ -15,6 +16,9 @@ class AppUser {
   final String? language;
   final String? timerDisplayMode;
 
+  /// Treino em andamento, guardado no campo `activeSession`.
+  final ActiveWorkout? activeWorkout;
+
   const AppUser({
     required this.uid,
     required this.name,
@@ -26,6 +30,7 @@ class AppUser {
     this.themeMode,
     this.language,
     this.timerDisplayMode,
+    this.activeWorkout,
   });
 
   factory AppUser.fromMap(String uid, Map<String, dynamic> map) {
@@ -45,6 +50,7 @@ class AppUser {
       themeMode: settings['themeMode'] as String?,
       language: settings['language'] as String?,
       timerDisplayMode: settings['timerDisplayMode'] as String?,
+      activeWorkout: ActiveWorkout.tryFromMap(map['activeSession']),
     );
   }
 }

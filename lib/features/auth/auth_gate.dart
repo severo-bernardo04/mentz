@@ -9,6 +9,7 @@ import 'package:mentz/services/settings_service.dart';
 import 'package:mentz/services/training_chart_service.dart';
 import 'package:mentz/services/training_history_service.dart';
 import 'package:mentz/services/user_profile_service.dart';
+import 'package:mentz/services/workout_session_service.dart';
 
 /// Mostra o login ou a home conforme a sessão do Firebase.
 class AuthGate extends StatefulWidget {
@@ -55,11 +56,12 @@ class _SignedInGateState extends State<_SignedInGate> {
   @override
   void initState() {
     super.initState();
-    // Carrega preferências, catálogo, planilhas e histórico deste usuário
+    // Carrega preferências, catálogo, planilhas, histórico e treino em andamento
     SettingsService().watchUser(widget.uid);
     ExerciseCatalogService().watchUser(widget.uid);
     TrainingChartService().watchUser(widget.uid);
     TrainingHistoryService().watchUser(widget.uid);
+    WorkoutSessionService().watchUser(widget.uid);
   }
 
   @override
@@ -68,6 +70,7 @@ class _SignedInGateState extends State<_SignedInGate> {
     ExerciseCatalogService().stopWatching(widget.uid);
     TrainingChartService().stopWatching(widget.uid);
     TrainingHistoryService().stopWatching(widget.uid);
+    WorkoutSessionService().stopWatching(widget.uid);
     super.dispose();
   }
 

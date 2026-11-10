@@ -12,6 +12,16 @@ const notInformed = 'Não informado';
 
 const weekdayShort = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'];
 
+const weekdayFull = [
+  'Segunda-feira',
+  'Terça-feira',
+  'Quarta-feira',
+  'Quinta-feira',
+  'Sexta-feira',
+  'Sábado',
+  'Domingo',
+];
+
 String formatDate(DateTime d) =>
     '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}/${d.year}';
 
@@ -352,7 +362,31 @@ enum SetType {
 /// Etiqueta do drop set, que não é um tipo: complementa uma série de
 /// Trabalho ou Aquecimento. A cor própria evita confusão com o Reconhecimento.
 const dropSetLabel = 'Drop set';
+
+/// Rótulo da carga feita com o peso do corpo (body weight).
+const bodyWeightLabel = 'BW';
 const dropSetColor = Color(0xFF00897B); // Verde-azulado
+
+/// Desempenho de uma série comparado com a faixa planejada.
+/// [color] null significa a cor normal do texto.
+enum RepsPerformance {
+  /// Abaixo do mínimo da faixa.
+  below(Color(0xFFD32F2F)), // Vermelho
+  /// Dentro da faixa, abaixo do máximo.
+  within(null),
+  /// No máximo da faixa ou acima: hora de pensar em subir a carga.
+  top(Color(0xFF2E7D32)); // Verde
+
+  final Color? color;
+  const RepsPerformance(this.color);
+
+  /// Classifica [reps] na faixa [minReps]–[maxReps].
+  static RepsPerformance of(double reps, int minReps, int maxReps) {
+    if (reps < minReps) return below;
+    if (reps >= maxReps) return top;
+    return within;
+  }
+}
 
 /// Formata um número sem casas decimais quando for um valor inteiro.
 String _formatNumber(double value) =>
@@ -404,6 +438,16 @@ class ExecutedSet {
   /// Etapas do drop set depois da primeira.
   final List<DropStage> dropStages;
 
+  /// Faixa de repetições planejada, guardada como estava no dia do treino.
+  /// É null em sessões antigas, registradas antes da faixa existir.
+  final int? minReps;
+  final int? maxReps;
+
+  /// A série foi feita com o peso do corpo (BW, body weight), sem carga
+  /// externa. Nesse caso [loadKg] fica 0. Como a 1RM vai tratar o BW ainda
+  /// será definido.
+  final bool bodyWeight;
+
   const ExecutedSet({
     required this.setNumber,
     this.type = SetType.working,
@@ -412,6 +456,9 @@ class ExecutedSet {
     this.completed = true,
     this.isDropSet = false,
     this.dropStages = const [],
+    this.minReps,
+    this.maxReps,
+    this.bodyWeight = false,
   }) : assert(
          loadKg >= 0 && (loadKg * 2) % 1 == 0,
          'A carga deve ser positiva e variar de 0,5 em 0,5.',
@@ -426,16 +473,40 @@ class ExecutedSet {
        );
 
   /// Carga com unidade, incluindo as etapas do drop set (ex: "40 kg / 30 kg").
+  /// Séries com peso do corpo aparecem como "BW".
   String get loadLabel => [
-    _formatKg(loadKg),
+    bodyWeight ? bodyWeightLabel : _formatKg(loadKg),
     for (final stage in dropStages) _formatKg(stage.loadKg),
   ].join(' / ');
+
+  /// Carga (ou BW) e repetições informadas, incluindo as etapas do drop set.
+  bool get isFilled =>
+      reps > 0 &&
+      (bodyWeight || loadKg > 0) &&
+      dropStages.every((stage) => stage.reps > 0 && stage.loadKg > 0);
 
   /// Repetições, incluindo as etapas do drop set (ex: "12 + 6").
   String get repsLabel => [
     _formatNumber(reps),
     for (final stage in dropStages) _formatNumber(stage.reps),
   ].join(' + ');
+
+  /// Faixa planejada para exibição (ex: "8–10"), ou null se não houver.
+  String? get rangeLabel {
+    final min = minReps;
+    final max = maxReps;
+    if (min == null || max == null) return null;
+    return min == max ? '$min' : '$min–$max';
+  }
+
+  /// Desempenho da primeira etapa na faixa planejada. É null quando a série
+  /// não tem faixa ou ainda não foi feita.
+  RepsPerformance? get performance {
+    final min = minReps;
+    final max = maxReps;
+    if (min == null || max == null || reps <= 0) return null;
+    return RepsPerformance.of(reps, min, max);
+  }
 
   ExecutedSet copyWith({
     int? setNumber,
@@ -445,6 +516,7 @@ class ExecutedSet {
     bool? completed,
     bool? isDropSet,
     List<DropStage>? dropStages,
+    bool? bodyWeight,
   }) {
     return ExecutedSet(
       setNumber: setNumber ?? this.setNumber,
@@ -454,6 +526,9 @@ class ExecutedSet {
       completed: completed ?? this.completed,
       isDropSet: isDropSet ?? this.isDropSet,
       dropStages: dropStages ?? this.dropStages,
+      minReps: minReps,
+      maxReps: maxReps,
+      bodyWeight: bodyWeight ?? this.bodyWeight,
     );
   }
 
@@ -465,6 +540,9 @@ class ExecutedSet {
         'completed': completed,
         'isDropSet': isDropSet,
         'dropStages': dropStages.map((s) => s.toMap()).toList(),
+        if (minReps != null) 'minReps': minReps,
+        if (maxReps != null) 'maxReps': maxReps,
+        if (bodyWeight) 'bodyWeight': true,
       };
 
   factory ExecutedSet.fromMap(Map<String, dynamic> map) {
@@ -483,6 +561,9 @@ class ExecutedSet {
                   DropStage.fromMap(Map<String, dynamic>.from(s as Map)))
               .toList() ??
           const [],
+      minReps: (map['minReps'] as num?)?.toInt(),
+      maxReps: (map['maxReps'] as num?)?.toInt(),
+      bodyWeight: map['bodyWeight'] as bool? ?? false,
     );
   }
 }
@@ -506,6 +587,40 @@ class ExecutedExercise {
     this.completed = true,
     this.notes,
   });
+
+  /// Exercício ainda não feito, com uma série vazia para cada série planejada.
+  /// Séries com drop set já começam com uma etapa extra.
+  factory ExecutedExercise.fromPlanned(WorkoutExercise planned) {
+    return ExecutedExercise(
+      exerciseId: planned.exercise.id,
+      name: planned.name,
+      muscle: planned.muscle,
+      completed: false,
+      sets: [
+        for (var i = 0; i < planned.plannedSets.length; i++)
+          ExecutedSet(
+            setNumber: i + 1,
+            type: planned.plannedSets[i].type,
+            loadKg: 0,
+            reps: 0,
+            completed: false,
+            isDropSet: planned.plannedSets[i].isDropSet,
+            dropStages: planned.plannedSets[i].isDropSet
+                ? const [DropStage(loadKg: 0, reps: 0)]
+                : const [],
+            minReps: planned.plannedSets[i].minReps,
+            maxReps: planned.plannedSets[i].maxReps,
+          ),
+      ],
+    );
+  }
+
+  /// Todas as séries (e etapas de drop set) têm carga (ou BW) e repetições
+  /// informadas. Só assim o exercício pode ser marcado como feito.
+  bool get allSetsFilled => sets.isNotEmpty && sets.every((s) => s.isFilled);
+
+  /// Alguma série recebeu valores (mesmo sem o exercício estar feito).
+  bool get wasStarted => completed || sets.any((s) => s.reps > 0);
 
   ExecutedExercise copyWith({
     String? exerciseId,
@@ -550,6 +665,51 @@ class ExecutedExercise {
   }
 }
 
+/// Pendentes de um treino anterior feitos durante outro treino. Fica na
+/// sessão nova para indicar que parte do tempo dela foi usada para isso.
+class CarriedPending {
+  final String sessionId;
+  final String workoutName;
+  final DateTime date;
+
+  /// Exercícios do treino anterior trabalhados nesta sessão.
+  final List<String> exerciseNames;
+
+  const CarriedPending({
+    required this.sessionId,
+    required this.workoutName,
+    required this.date,
+    this.exerciseNames = const [],
+  });
+
+  /// Ex: "FULL BODY 1 de 09/11".
+  String get label => '$workoutName de ${formatShort(date)}';
+
+  Map<String, dynamic> toMap() => {
+        'sessionId': sessionId,
+        'workoutName': workoutName,
+        'date': Timestamp.fromDate(date),
+        'exerciseNames': exerciseNames,
+      };
+
+  static CarriedPending? tryFromMap(Object? data) {
+    if (data is! Map) return null;
+    final sessionId = data['sessionId'];
+    final date = data['date'];
+    if (sessionId is! String || date is! Timestamp) return null;
+
+    return CarriedPending(
+      sessionId: sessionId,
+      workoutName: data['workoutName'] as String? ?? '',
+      date: date.toDate(),
+      exerciseNames: (data['exerciseNames'] as List?)
+              ?.map((e) => e.toString())
+              .toList() ??
+          const [],
+    );
+  }
+}
+
 class CompletedWorkout {
   final String? id;
 
@@ -563,6 +723,17 @@ class CompletedWorkout {
   final String? workoutName;
   final List<ExecutedExercise> executedExercises;
 
+  /// Quando os exercícios pendentes foram completados em outro momento.
+  /// É null se o treino nunca foi completado depois.
+  final DateTime? completedAt;
+
+  /// O usuário escolheu ignorar os pendentes: o treino deixa de ser oferecido
+  /// para completar, mas os exercícios continuam como não realizados.
+  final bool pendingIgnored;
+
+  /// Pendentes de outro treino feitos durante este; null se não houve.
+  final CarriedPending? carriedPending;
+
   const CompletedWorkout(
     this.date,
     this.plan,
@@ -573,25 +744,63 @@ class CompletedWorkout {
     this.chartName,
     this.workoutName,
     this.executedExercises = const [],
+    this.completedAt,
+    this.pendingIgnored = false,
+    this.carriedPending,
   });
+
+  /// Último dia em que o usuário treinou nesta sessão (feita ou completada).
+  DateTime get lastActivity {
+    final completed = completedAt;
+    return completed != null && completed.isAfter(date) ? completed : date;
+  }
 
   String get displayWorkoutName =>
       workoutName ?? (plan.startsWith('Treino') ? plan : 'Treino $plan');
 
   String get displayChartName => chartName ?? 'Planilha';
 
-  String get weekdayName {
-    const days = [
-      'Segunda-feira',
-      'Terça-feira',
-      'Quarta-feira',
-      'Quinta-feira',
-      'Sexta-feira',
-      'Sábado',
-      'Domingo',
-    ];
-    return days[date.weekday - 1];
+  /// Rótulo curto para avatares: "A" em "TREINO A", ou a inicial do nome.
+  String get shortLabel {
+    final name = plan.trim();
+    if (name.length <= 3) return name.toUpperCase();
+
+    final last = name.split(RegExp(r'\s+')).last;
+    return (last.length <= 3 ? last : name[0]).toUpperCase();
   }
+
+  /// Exercícios não marcados como feitos.
+  List<ExecutedExercise> get pendingExercises =>
+      executedExercises.where((e) => !e.completed).toList();
+
+  /// Indica que o treino não foi 100% aproveitado.
+  bool get isIncomplete => executedExercises.any((e) => !e.completed);
+
+  /// Posições dos exercícios não marcados como feitos.
+  List<int> get pendingIndexes => [
+        for (var i = 0; i < executedExercises.length; i++)
+          if (!executedExercises[i].completed) i,
+      ];
+
+  /// Ainda pode ser completado: incompleto, não ignorado e ligado a um dia
+  /// de planilha (sessões antigas, sem planilha, não entram).
+  bool get canBeCompleted =>
+      isIncomplete &&
+      !pendingIgnored &&
+      id != null &&
+      chartId != null &&
+      dayId != null;
+
+  /// Quantidade de séries de cada tipo.
+  Map<SetType, int> get setCountByType => {
+        for (final type in SetType.values)
+          type: executedExercises.fold<int>(
+            0,
+            (total, e) => total + e.sets.where((s) => s.type == type).length,
+          ),
+      };
+
+  String get weekdayName => weekdayFull[date.weekday - 1];
 
   CompletedWorkout copyWith({
     String? id,
@@ -603,6 +812,9 @@ class CompletedWorkout {
     String? chartName,
     String? workoutName,
     List<ExecutedExercise>? executedExercises,
+    DateTime? completedAt,
+    bool? pendingIgnored,
+    CarriedPending? carriedPending,
   }) {
     return CompletedWorkout(
       date ?? this.date,
@@ -614,6 +826,9 @@ class CompletedWorkout {
       chartName: chartName ?? this.chartName,
       workoutName: workoutName ?? this.workoutName,
       executedExercises: executedExercises ?? this.executedExercises,
+      completedAt: completedAt ?? this.completedAt,
+      pendingIgnored: pendingIgnored ?? this.pendingIgnored,
+      carriedPending: carriedPending ?? this.carriedPending,
     );
   }
 
@@ -626,6 +841,9 @@ class CompletedWorkout {
         if (chartName != null) 'chartName': chartName,
         if (workoutName != null) 'workoutName': workoutName,
         'executedExercises': executedExercises.map((e) => e.toMap()).toList(),
+        if (completedAt != null) 'completedAt': Timestamp.fromDate(completedAt!),
+        if (pendingIgnored) 'pendingIgnored': true,
+        if (carriedPending != null) 'carriedPending': carriedPending!.toMap(),
       };
 
   /// [id] é o identificador do documento no Firestore.
@@ -644,6 +862,9 @@ class CompletedWorkout {
                   ExecutedExercise.fromMap(Map<String, dynamic>.from(e as Map)))
               .toList() ??
           const [],
+      completedAt: (map['completedAt'] as Timestamp?)?.toDate(),
+      pendingIgnored: map['pendingIgnored'] as bool? ?? false,
+      carriedPending: CarriedPending.tryFromMap(map['carriedPending']),
     );
   }
 }
