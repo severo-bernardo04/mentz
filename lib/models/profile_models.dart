@@ -552,6 +552,10 @@ class ExecutedExercise {
 
 class CompletedWorkout {
   final String? id;
+
+  /// Planilha e dia do ciclo treinados, usados para calcular o próximo treino.
+  final String? chartId;
+  final String? dayId;
   final DateTime date;
   final String plan;
   final int minutes;
@@ -564,6 +568,8 @@ class CompletedWorkout {
     this.plan,
     this.minutes, {
     this.id,
+    this.chartId,
+    this.dayId,
     this.chartName,
     this.workoutName,
     this.executedExercises = const [],
@@ -589,6 +595,8 @@ class CompletedWorkout {
 
   CompletedWorkout copyWith({
     String? id,
+    String? chartId,
+    String? dayId,
     DateTime? date,
     String? plan,
     int? minutes,
@@ -601,6 +609,8 @@ class CompletedWorkout {
       plan ?? this.plan,
       minutes ?? this.minutes,
       id: id ?? this.id,
+      chartId: chartId ?? this.chartId,
+      dayId: dayId ?? this.dayId,
       chartName: chartName ?? this.chartName,
       workoutName: workoutName ?? this.workoutName,
       executedExercises: executedExercises ?? this.executedExercises,
@@ -611,6 +621,8 @@ class CompletedWorkout {
         'date': Timestamp.fromDate(date),
         'plan': plan,
         'minutes': minutes,
+        if (chartId != null) 'chartId': chartId,
+        if (dayId != null) 'dayId': dayId,
         if (chartName != null) 'chartName': chartName,
         if (workoutName != null) 'workoutName': workoutName,
         'executedExercises': executedExercises.map((e) => e.toMap()).toList(),
@@ -623,6 +635,8 @@ class CompletedWorkout {
       map['plan'] as String? ?? '',
       (map['minutes'] as num?)?.toInt() ?? 0,
       id: id,
+      chartId: map['chartId'] as String?,
+      dayId: map['dayId'] as String?,
       chartName: map['chartName'] as String?,
       workoutName: map['workoutName'] as String?,
       executedExercises: (map['executedExercises'] as List?)
@@ -672,7 +686,6 @@ class StudentProfile {
   // Treino
   final List<WorkoutPlan> workouts;
   final List<int> trainingDays; // 0 = seg ... 6 = dom
-  final String? nextWorkoutLabel;
   final String? trainerName;
 
   // Progresso
@@ -699,7 +712,6 @@ class StudentProfile {
     this.assessments = const [],
     this.workouts = const [],
     this.trainingDays = const [],
-    this.nextWorkoutLabel,
     this.trainerName,
     this.records = const [],
     this.goalsReached = const [],

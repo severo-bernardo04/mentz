@@ -6,7 +6,9 @@ import 'package:mentz/features/profile/widgets/profile_tab_page.dart';
 import 'package:mentz/features/training_history/training_history_page.dart';
 import 'package:mentz/features/training_history/workout_session_detail_page.dart';
 import 'package:mentz/models/profile_models.dart';
+import 'package:mentz/services/training_chart_service.dart';
 import 'package:mentz/services/training_history_service.dart';
+import 'package:mentz/services/workout_schedule_service.dart';
 import 'package:mentz/widgets/empty_hint.dart';
 import 'package:mentz/widgets/info_row.dart';
 import 'package:mentz/widgets/section_card.dart';
@@ -38,6 +40,20 @@ class _WorkoutTabState extends State<WorkoutTab> {
     });
   }
 
+  /// Próximo treino da planilha mais recente, até existir a planilha atual.
+  String _nextWorkoutText() {
+    final charts = TrainingChartService().charts;
+    if (charts.isEmpty) return 'Nenhuma planilha criada';
+
+    final next = WorkoutScheduleService.nextWorkout(
+      charts.first,
+      TrainingHistoryService().sessions,
+    );
+    return next == null
+        ? notInformed
+        : WorkoutScheduleService.label(next);
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -52,10 +68,17 @@ class _WorkoutTabState extends State<WorkoutTab> {
           icon: Icons.event_outlined,
           child: Column(
             children: [
-              InfoRow(
-                icon: Icons.play_circle_outline,
-                label: 'Programado',
-                value: s.nextWorkoutLabel ?? notInformed,
+              // Recalcula sempre que as planilhas ou o histórico mudam
+              ListenableBuilder(
+                listenable: Listenable.merge([
+                  TrainingChartService(),
+                  TrainingHistoryService(),
+                ]),
+                builder: (context, _) => InfoRow(
+                  icon: Icons.play_circle_outline,
+                  label: 'Programado',
+                  value: _nextWorkoutText(),
+                ),
               ),
               InfoRow(
                 icon: Icons.support_agent_outlined,
