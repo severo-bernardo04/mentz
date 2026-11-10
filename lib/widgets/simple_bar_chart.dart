@@ -22,7 +22,7 @@ class SimpleBarChart extends StatelessWidget {
     final maxV = values.isEmpty ? 1 : values.reduce(math.max);
 
     return SizedBox(
-      height: height + 36,
+      height: height + 48,
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [

@@ -216,7 +216,7 @@ class SpreadsheetDataTable extends StatelessWidget {
           if (exercise.sets.isNotEmpty) ...[
             const SizedBox(height: 6),
             Text(
-              '${exercise.sets.first.load} × ${exercise.sets.first.reps}',
+              '${exercise.sets.first.loadLabel} × ${exercise.sets.first.repsLabel}',
               style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
             ),
           ],
@@ -238,14 +238,14 @@ class SpreadsheetDataTable extends StatelessWidget {
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  // Número da série em um "badge" colorido
+                  // Número da série em um "badge" com a cor do tipo da série
                   Container(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 6,
                       vertical: 1,
                     ),
                     decoration: BoxDecoration(
-                      color: cs.primary.withAlpha(25),
+                      color: set.type.color.withAlpha(25),
                       borderRadius: BorderRadius.circular(6),
                     ),
                     child: Text(
@@ -253,22 +253,22 @@ class SpreadsheetDataTable extends StatelessWidget {
                       style: TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w800,
-                        color: cs.primary,
+                        color: set.type.color,
                       ),
                     ),
                   ),
                   const SizedBox(width: 8),
                   Text(
-                    '${set.load} × ${set.reps}',
+                    '${set.loadLabel} × ${set.repsLabel}',
                     style: const TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.w700,
                     ),
                   ),
-                  if (set.type == SetType.dropSet)
+                  if (set.isDropSet)
                     Padding(
                       padding: const EdgeInsets.only(left: 6),
-                      child: _buildTag('drop', Colors.purple.shade700),
+                      child: _buildTag('drop', dropSetColor),
                     ),
                 ],
               ),

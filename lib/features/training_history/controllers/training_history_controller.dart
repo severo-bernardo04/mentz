@@ -67,8 +67,8 @@ class TrainingHistoryController extends ChangeNotifier {
       _sessions = List<CompletedWorkout>.from(result);
       // Garantir ordenação cronológica decrescente (mais recente para mais antigo)
       _sessions.sort((a, b) => b.date.compareTo(a.date));
-    } catch (e) {
-      _errorMessage = 'Falha ao carregar o histórico de treinos: $e';
+    } catch (_) {
+      _errorMessage = 'Não foi possível carregar o histórico de treinos.';
     } finally {
       _loading = false;
       notifyListeners();

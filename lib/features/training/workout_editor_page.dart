@@ -32,8 +32,8 @@ class _WorkoutEditorPageState extends State<WorkoutEditorPage> {
     super.dispose();
   }
 
-  Future<void> _editExercise({Exercise? current, int? index}) async {
-    final result = await showModalBottomSheet<Exercise>(
+  Future<void> _editExercise({WorkoutExercise? current, int? index}) async {
+    final result = await showModalBottomSheet<WorkoutExercise>(
       context: context,
       isScrollControlled: true,
       showDragHandle: true,

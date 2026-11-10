@@ -225,9 +225,6 @@ void main() {
         muscle: 'Ombros',
         primaryMuscle: 'Deltoides',
         highActivationMuscles: const ['Tríceps'],
-        sets: 4,
-        reps: '10',
-        load: '22 kg',
       );
       service.setExercisesForTest([ex]);
 
@@ -278,6 +275,116 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.byType(HomePage), findsOneWidget);
+    });
+  });
+
+  group('Séries planejadas', () {
+    test('tryParse aceita faixas válidas', () {
+      final range = PlannedSet.tryParse(' 8 - 10 ');
+
+      expect(range?.minReps, 8);
+      expect(range?.maxReps, 10);
+      expect(range?.type, SetType.working);
+    });
+
+    test('tryParse recusa mínimo maior que o máximo e formatos inválidos', () {
+      for (final text in ['10-8', '0-5', '12', 'abc', '']) {
+        expect(PlannedSet.tryParse(text), isNull, reason: text);
+      }
+    });
+
+    test('apenas Reconhecimento aceita valor único', () {
+      final feeder = PlannedSet.tryParse('2', type: SetType.feeder);
+
+      expect(feeder?.minReps, 2);
+      expect(feeder?.maxReps, 2);
+      expect(feeder?.repsLabel, '2');
+      expect(feeder?.repsInput, '2');
+      expect(PlannedSet.tryParse('2', type: SetType.working), isNull);
+      expect(PlannedSet.tryParse('2', type: SetType.warmup), isNull);
+      expect(PlannedSet.tryParse('0', type: SetType.feeder), isNull);
+      expect(PlannedSet.tryParse('1-3', type: SetType.feeder)?.maxReps, 3);
+    });
+
+    test('o modelo não aceita faixa invertida nem drop set em Reconhecimento', () {
+      expect(() => PlannedSet(minReps: 10, maxReps: 8), throwsAssertionError);
+      expect(
+        () => PlannedSet(
+          type: SetType.feeder,
+          minReps: 8,
+          maxReps: 10,
+          isDropSet: true,
+        ),
+        throwsAssertionError,
+      );
+    });
+
+    test('setsLabel agrupa faixas seguidas iguais', () {
+      final uniform = WorkoutExercise(
+        exercise: Exercise(name: 'Supino reto'),
+        plannedSets: PlannedSet.repeat(4, minReps: 8, maxReps: 10),
+      );
+      final mixed = WorkoutExercise(
+        exercise: Exercise(name: 'Agachamento'),
+        plannedSets: const [
+          PlannedSet(type: SetType.warmup, minReps: 15, maxReps: 20),
+          PlannedSet(minReps: 6, maxReps: 8),
+          PlannedSet(minReps: 6, maxReps: 8),
+        ],
+      );
+
+      expect(uniform.setsLabel, '4 × 8–10');
+      expect(mixed.setsLabel, '1 × 15–20 + 2 × 6–8');
+    });
+
+    test('toMap e fromMap preservam as séries planejadas', () {
+      final remada = Exercise(id: 'remada-curvada', name: 'Remada curvada');
+      final original = WorkoutExercise(
+        exercise: remada,
+        plannedSets: const [
+          PlannedSet(
+            type: SetType.warmup,
+            minReps: 12,
+            maxReps: 15,
+            isDropSet: true,
+          ),
+          PlannedSet(minReps: 8, maxReps: 10),
+        ],
+      );
+
+      final restored = WorkoutExercise.fromMap(
+        original.toMap(),
+        findExercise: (id) => id == remada.id ? remada : null,
+      );
+
+      expect(restored.name, 'Remada curvada');
+      expect(restored.plannedSets.length, 2);
+      expect(restored.plannedSets.first.type, SetType.warmup);
+      expect(restored.plannedSets.first.isDropSet, isTrue);
+      expect(restored.plannedSets.last.repsLabel, '8–10');
+    });
+
+    test('o catálogo não guarda faixa de repetições nem descanso', () {
+      final map = Exercise(name: 'Supino reto').toMap();
+
+      expect(map.containsKey('plannedSets'), isFalse);
+      expect(map.containsKey('restSeconds'), isFalse);
+    });
+
+    test('o mesmo exercício pode ter faixas diferentes em cada treino', () {
+      final bench = Exercise(name: 'Supino reto');
+      final strength = WorkoutExercise(
+        exercise: bench,
+        plannedSets: PlannedSet.repeat(5, minReps: 4, maxReps: 6),
+      );
+      final volume = WorkoutExercise(
+        exercise: bench,
+        plannedSets: PlannedSet.repeat(3, minReps: 10, maxReps: 12),
+      );
+
+      expect(strength.setsLabel, '5 × 4–6');
+      expect(volume.setsLabel, '3 × 10–12');
+      expect(identical(strength.exercise, volume.exercise), isTrue);
     });
   });
 }

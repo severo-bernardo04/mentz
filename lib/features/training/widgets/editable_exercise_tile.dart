@@ -4,7 +4,7 @@ import 'package:mentz/models/profile_models.dart';
 /// Exercício na lista do editor: arrastar, editar (toque) e remover.
 class EditableExerciseTile extends StatelessWidget {
   final int index;
-  final Exercise exercise;
+  final WorkoutExercise exercise;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
 
@@ -27,24 +27,34 @@ class EditableExerciseTile extends StatelessWidget {
         color: cs.surfaceContainerHighest.withAlpha(90),
         borderRadius: BorderRadius.circular(16),
       ),
-      child: ListTile(
-        onTap: onEdit,
-        contentPadding: const EdgeInsets.only(left: 4, right: 4),
-        leading: ReorderableDragStartListener(
-          index: index,
-          child: const Padding(
-            padding: EdgeInsets.all(8),
-            child: Icon(Icons.drag_indicator),
+      // Material transparente: o ListTile desenha o toque sobre o fundo colorido
+      child: Material(
+        type: MaterialType.transparency,
+        child: ListTile(
+          onTap: onEdit,
+          contentPadding: const EdgeInsets.only(left: 4, right: 4),
+          leading: ReorderableDragStartListener(
+            index: index,
+            child: const Padding(
+              padding: EdgeInsets.all(8),
+              child: Icon(Icons.drag_indicator),
+            ),
           ),
-        ),
-        title: Text(e.name, style: const TextStyle(fontWeight: FontWeight.w700)),
-        subtitle: Text(
-          '${e.sets} × ${e.reps}  •  ${e.load}  •  descanso ${e.restLabel}',
-        ),
-        trailing: IconButton(
-          tooltip: 'Remover',
-          icon: Icon(Icons.delete_outline, color: cs.error),
-          onPressed: onDelete,
+          title: Text(
+            e.name,
+            style: const TextStyle(fontWeight: FontWeight.w700),
+          ),
+          subtitle: Text(
+            [
+              e.setsLabel,
+              if (e.restLabel != null) 'descanso ${e.restLabel}',
+            ].join('  •  '),
+          ),
+          trailing: IconButton(
+            tooltip: 'Remover',
+            icon: Icon(Icons.delete_outline, color: cs.error),
+            onPressed: onDelete,
+          ),
         ),
       ),
     );

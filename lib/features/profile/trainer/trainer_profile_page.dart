@@ -10,6 +10,7 @@ import 'package:mentz/features/profile/widgets/profile_scaffold.dart';
 import 'package:mentz/features/training/workout_editor_page.dart';
 import 'package:mentz/models/profile_models.dart';
 import 'package:mentz/widgets/status_chip.dart';
+import 'package:mentz/services/photo_service.dart';
 
 /// Perfil do treinador: dados profissionais + ferramentas de gestão.
 class TrainerProfilePage extends StatefulWidget {
@@ -53,16 +54,16 @@ class _TrainerProfilePageState extends State<TrainerProfilePage> {
       title: 'Meu perfil',
       header: ProfileHeader(
         name: t.name,
-        subtitle: t.role.label,
+        subtitle: t.role?.label ?? 'Treinador',
         photoUrl: t.photoUrl,
-        // TODO: escolher foto (image_picker) e enviar ao Storage
-        onEditPhoto: () => context.showSnack('Troca de foto em breve.'),
+        onEditPhoto: () => _changePhoto(context),
         chips: [
-          StatusChip.active(
-            t.employmentActive,
-            activeLabel: 'Vínculo ativo',
-            inactiveLabel: 'Vínculo inativo',
-          ),
+          if (t.employmentActive != null)
+            StatusChip.active(
+              t.employmentActive!,
+              activeLabel: 'Vínculo ativo',
+              inactiveLabel: 'Vínculo inativo',
+            ),
           if (t.cref != null)
             StatusChip(label: 'CREF ${t.cref}', icon: Icons.verified_outlined),
         ],
@@ -91,5 +92,15 @@ class _TrainerProfilePageState extends State<TrainerProfilePage> {
         ),
       ],
     );
+  }
+  Future<void> _changePhoto(BuildContext context) async {
+    try {
+      final ok = await PhotoService().pickAndSave();
+      if (ok && context.mounted) context.showSnack('Foto atualizada.');
+    } catch (_) {
+      if (context.mounted) {
+        context.showSnack('Não foi possível enviar a foto.');
+      }
+    }
   }
 }

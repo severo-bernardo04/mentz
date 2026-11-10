@@ -129,7 +129,7 @@ void main() {
               name: 'Supino Reto',
               muscle: 'Peito',
               sets: [
-                ExecutedSet(setNumber: 1, load: '60 kg', reps: '10'),
+                ExecutedSet(setNumber: 1, loadKg: 60, reps: 10),
               ],
             ),
           ],
@@ -167,14 +167,14 @@ void main() {
               ExecutedSet(
                 setNumber: 1,
                 type: SetType.warmup,
-                load: '40 kg',
-                reps: '12',
+                loadKg: 40,
+                reps: 12,
               ),
               ExecutedSet(
                 setNumber: 2,
                 type: SetType.working,
-                load: '60 kg',
-                reps: '10',
+                loadKg: 60,
+                reps: 10,
               ),
             ],
           ),
@@ -185,8 +185,8 @@ void main() {
             sets: [
               ExecutedSet(
                 setNumber: 1,
-                load: '50 kg',
-                reps: '5',
+                loadKg: 50,
+                reps: 5,
                 completed: false,
               ),
             ],
@@ -239,7 +239,7 @@ void main() {
           executedExercises: const [
             ExecutedExercise(
               name: 'Supino Reto',
-              sets: [ExecutedSet(setNumber: 1, load: '55 kg', reps: '10')],
+              sets: [ExecutedSet(setNumber: 1, loadKg: 55, reps: 10)],
             ),
           ],
         ),
@@ -251,7 +251,7 @@ void main() {
           executedExercises: const [
             ExecutedExercise(
               name: 'Supino Reto',
-              sets: [ExecutedSet(setNumber: 1, load: '60 kg', reps: '10')],
+              sets: [ExecutedSet(setNumber: 1, loadKg: 60, reps: 10)],
             ),
           ],
         ),
@@ -266,6 +266,7 @@ void main() {
       expect(find.text('Treino A'), findsWidgets);
       expect(find.text('Exercício'), findsOneWidget);
       expect(find.text('Supino Reto'), findsOneWidget);
+      expect(find.text('55 kg × 10'), findsOneWidget);
     });
 
     testWidgets('navegação para o Histórico a partir do grid de atalhos da HomePage',
@@ -293,6 +294,168 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.byType(HomePage), findsOneWidget);
+    });
+  });
+
+  group('Tipos de série e drop set', () {
+    test('existem apenas Aquecimento, Reconhecimento e Trabalho', () {
+      expect(
+        SetType.values.map((t) => t.label),
+        ['Aquecimento', 'Reconhecimento', 'Trabalho'],
+      );
+    });
+
+    test('cada tipo tem cor própria, diferente da etiqueta de drop set', () {
+      final colors = SetType.values.map((t) => t.color).toSet();
+
+      expect(colors.length, SetType.values.length);
+      expect(colors, isNot(contains(dropSetColor)));
+    });
+
+    test('drop set acompanha Trabalho e Aquecimento, mas não Reconhecimento', () {
+      ExecutedSet build(SetType type) => ExecutedSet(
+        setNumber: 1,
+        type: type,
+        loadKg: 40,
+        reps: 10,
+        isDropSet: true,
+      );
+
+      expect(build(SetType.working).isDropSet, isTrue);
+      expect(build(SetType.warmup).isDropSet, isTrue);
+      expect(() => build(SetType.feeder), throwsAssertionError);
+    });
+
+    test('toMap e fromMap preservam o tipo e o drop set', () {
+      const original = ExecutedSet(
+        setNumber: 2,
+        type: SetType.warmup,
+        loadKg: 20,
+        reps: 15,
+        isDropSet: true,
+      );
+
+      final restored = ExecutedSet.fromMap(original.toMap());
+
+      expect(restored.type, SetType.warmup);
+      expect(restored.isDropSet, isTrue);
+    });
+
+    testWidgets('detalhe do treino exibe o tipo da série e o drop set', (
+      tester,
+    ) async {
+      tester.view.physicalSize = const Size(1200, 2400);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      await tester.pumpWidget(
+        createTestApp(
+          WorkoutSessionDetailPage(
+            session: CompletedWorkout(
+              DateTime(2026, 11, 1),
+              'A',
+              60,
+              executedExercises: const [
+                ExecutedExercise(
+                  name: 'Supino reto',
+                  sets: [
+                    ExecutedSet(
+                      setNumber: 1,
+                      type: SetType.feeder,
+                      loadKg: 30,
+                      reps: 8,
+                    ),
+                    ExecutedSet(
+                      setNumber: 2,
+                      loadKg: 60,
+                      reps: 10,
+                      isDropSet: true,
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Reconhecimento'), findsOneWidget);
+      expect(find.text('Trabalho'), findsOneWidget);
+      expect(find.text(dropSetLabel), findsOneWidget);
+    });
+  });
+
+  group('Carga e repetições numéricas', () {
+    test('a carga exibe a unidade e só usa decimais quando precisa', () {
+      const whole = ExecutedSet(setNumber: 1, loadKg: 60, reps: 10);
+      const decimal = ExecutedSet(setNumber: 2, loadKg: 57.5, reps: 8.5);
+
+      expect(whole.loadLabel, '60 kg');
+      expect(whole.repsLabel, '10');
+      expect(decimal.loadLabel, '57.5 kg');
+      expect(decimal.repsLabel, '8.5');
+    });
+
+    test('o drop set mostra a carga e as repetições de cada etapa', () {
+      const set = ExecutedSet(
+        setNumber: 3,
+        loadKg: 40,
+        reps: 12,
+        isDropSet: true,
+        dropStages: [DropStage(loadKg: 30, reps: 6)],
+      );
+
+      expect(set.loadLabel, '40 kg / 30 kg');
+      expect(set.repsLabel, '12 + 6');
+    });
+
+    test('toMap e fromMap preservam os valores numéricos e as etapas', () {
+      const original = ExecutedSet(
+        setNumber: 1,
+        loadKg: 42.5,
+        reps: 9,
+        isDropSet: true,
+        dropStages: [DropStage(loadKg: 30, reps: 6)],
+      );
+
+      final restored = ExecutedSet.fromMap(original.toMap());
+
+      expect(restored.loadKg, 42.5);
+      expect(restored.reps, 9);
+      expect(restored.dropStages.single.loadKg, 30);
+      expect(restored.dropStages.single.reps, 6);
+    });
+
+    test('carga e repetições só aceitam passos de 0,5', () {
+      expect(
+        () => ExecutedSet(setNumber: 1, loadKg: 57.3, reps: 10),
+        throwsAssertionError,
+      );
+      expect(
+        () => ExecutedSet(setNumber: 1, loadKg: 60, reps: 8.25),
+        throwsAssertionError,
+      );
+      expect(
+        () => DropStage(loadKg: 30.1, reps: 6),
+        throwsAssertionError,
+      );
+      expect(
+        () => DropStage(loadKg: 30, reps: 6.3),
+        throwsAssertionError,
+      );
+    });
+
+    test('carga e repetições não podem ser negativas', () {
+      expect(
+        () => ExecutedSet(setNumber: 1, loadKg: -1, reps: 10),
+        throwsAssertionError,
+      );
+      expect(
+        () => ExecutedSet(setNumber: 1, loadKg: 10, reps: -1),
+        throwsAssertionError,
+      );
     });
   });
 }

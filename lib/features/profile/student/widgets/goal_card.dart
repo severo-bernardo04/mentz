@@ -14,7 +14,7 @@ class GoalCard extends StatelessWidget {
     final start = student.weightHistory.first.kg;
     final total = student.targetWeight! - start;
     if (total == 0) return 1;
-    return ((student.currentWeight - start) / total).clamp(0.0, 1.0);
+    return ((student.currentWeight! - start) / total).clamp(0.0, 1.0);
   }
 
   @override
@@ -36,7 +36,7 @@ class GoalCard extends StatelessWidget {
                 _GoalChip(goal: g, selected: g == s.goal),
             ],
           ),
-          if (s.targetWeight != null) ...[
+          if (s.targetWeight != null && s.currentWeight != null) ...[
             const SizedBox(height: 18),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -50,7 +50,7 @@ class GoalCard extends StatelessWidget {
                 Text(
                   hidden
                       ? '•••'
-                      : '${s.currentWeight.toStringAsFixed(1)} → '
+                      : '${s.currentWeight!.toStringAsFixed(1)} → '
                           '${s.targetWeight!.toStringAsFixed(0)} kg',
                   style: theme.textTheme.labelLarge,
                 ),

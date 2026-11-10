@@ -1,18 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:mentz/features/training/controllers/day_draft.dart';
+import 'package:mentz/models/profile_models.dart';
 import 'package:mentz/models/training_chart.dart';
 import 'package:mentz/services/training_chart_service.dart';
 
 /// Estado e regras do formulário de nova planilha (sem nada de interface).
 class ChartFormController extends ChangeNotifier {
   final nameCtrl = TextEditingController(text: 'Training Charts 7');
-  final descCtrl = TextEditingController();
 
   /// Começa com 3 dias padrão (ABC).
   final List<DayDraft> days = [
-    DayDraft(name: 'TREINO A', focus: 'Peito e Tríceps', restDaysAfter: 1),
-    DayDraft(name: 'TREINO B', focus: 'Costas e Bíceps', restDaysAfter: 1),
-    DayDraft(name: 'TREINO C', focus: 'Pernas e Ombros', restDaysAfter: 2),
+    DayDraft(name: 'TREINO A', restDaysAfter: 1),
+    DayDraft(name: 'TREINO B', restDaysAfter: 1),
+    DayDraft(name: 'TREINO C', restDaysAfter: 2),
   ];
 
   /// 1 = Seg ... 7 = Dom.
@@ -43,11 +43,15 @@ class ChartFormController extends ChangeNotifier {
     notifyListeners();
   }
 
-  void addDay() {
+  /// Adiciona um dia ao ciclo. Retorna false se já estiver no limite.
+  bool addDay() {
+    if (days.length >= TrainingChart.maxDays) return false;
+
     final letter = String.fromCharCode(65 + (days.length % 26));
     days.add(DayDraft(name: 'TREINO $letter'));
     errorMessage = null;
     notifyListeners();
+    return true;
   }
 
   /// Remove o dia [index]. Retorna false se for o último (não pode remover).
@@ -62,6 +66,28 @@ class ChartFormController extends ChangeNotifier {
 
   void setRestDays(DayDraft day, int value) {
     day.restDaysAfter = value;
+    notifyListeners();
+  }
+
+  /// Adiciona o exercício ao dia, ou substitui o da posição [index].
+  void saveExercise(DayDraft day, WorkoutExercise exercise, {int? index}) {
+    if (index == null) {
+      day.exercises.add(exercise);
+    } else {
+      day.exercises[index] = exercise;
+    }
+    errorMessage = null;
+    notifyListeners();
+  }
+
+  void removeExercise(DayDraft day, int index) {
+    day.exercises.removeAt(index);
+    notifyListeners();
+  }
+
+  /// [newIndex] já vem ajustado pelo `onReorderItem` do Flutter.
+  void reorderExercise(DayDraft day, int oldIndex, int newIndex) {
+    day.exercises.insert(newIndex, day.exercises.removeAt(oldIndex));
     notifyListeners();
   }
 
@@ -81,6 +107,9 @@ class ChartFormController extends ChangeNotifier {
       if (days[i].nameCtrl.text.trim().isEmpty) {
         return 'O dia #${i + 1} está com o nome vazio.';
       }
+      if (days[i].exercises.isEmpty) {
+        return 'Adicione ao menos um exercício em ${days[i].nameCtrl.text.trim()}.';
+      }
     }
 
     if (frequencyType == WorkoutFrequencyType.fixedDays &&
@@ -94,12 +123,10 @@ class ChartFormController extends ChangeNotifier {
   TrainingChart buildChart() {
     final stamp = DateTime.now().millisecondsSinceEpoch;
     final isFixed = frequencyType == WorkoutFrequencyType.fixedDays;
-    final desc = descCtrl.text.trim();
 
     return TrainingChart(
       id: 'chart-$stamp',
       name: nameCtrl.text.trim(),
-      description: desc.isEmpty ? null : desc,
       days: [
         for (var i = 0; i < days.length; i++)
           days[i].toTrainingDay(id: 'day-$stamp-$i', order: i + 1),
@@ -130,8 +157,8 @@ class ChartFormController extends ChangeNotifier {
       final chart = buildChart();
       await service.saveChart(chart);
       return chart;
-    } catch (e) {
-      errorMessage = 'Erro ao salvar a planilha: $e';
+    } catch (_) {
+      errorMessage = 'Não foi possível salvar a planilha. Tente novamente.';
       return null;
     } finally {
       loading = false;
@@ -143,7 +170,6 @@ class ChartFormController extends ChangeNotifier {
   void dispose() {
     _disposed = true;
     nameCtrl.dispose();
-    descCtrl.dispose();
     for (final day in days) {
       day.dispose();
     }

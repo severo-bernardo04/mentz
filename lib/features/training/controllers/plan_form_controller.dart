@@ -7,7 +7,7 @@ class PlanFormController extends ChangeNotifier {
   final TextEditingController nameCtrl;
   final TextEditingController focusCtrl;
   final TextEditingController notesCtrl;
-  final List<Exercise> exercises;
+  final List<WorkoutExercise> exercises;
   final Set<String> assigned;
 
   PlanFormController(this.original)
@@ -16,23 +16,20 @@ class PlanFormController extends ChangeNotifier {
         notesCtrl = TextEditingController(text: original?.notes ?? ''),
         // cópia profunda: o original só muda quando o treinador salvar
         exercises = [
-          for (final e in original?.exercises ?? <Exercise>[]) _copy(e),
+          for (final e in original?.exercises ?? <WorkoutExercise>[]) _copy(e),
         ],
         assigned = {...?original?.assignedStudents};
 
   bool get isEditing => original != null;
 
-  static Exercise _copy(Exercise e) => Exercise(
-        name: e.name,
-        muscle: e.muscle,
-        sets: e.sets,
-        reps: e.reps,
-        load: e.load,
+  static WorkoutExercise _copy(WorkoutExercise e) => WorkoutExercise(
+        exercise: e.exercise,
+        plannedSets: e.plannedSets,
         restSeconds: e.restSeconds,
       );
 
   /// Adiciona o exercício, ou substitui o da posição [index].
-  void saveExercise(Exercise exercise, {int? index}) {
+  void saveExercise(WorkoutExercise exercise, {int? index}) {
     if (index == null) {
       exercises.add(exercise);
     } else {

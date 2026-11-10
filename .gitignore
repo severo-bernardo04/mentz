@@ -54,3 +54,11 @@ app.*.map.json
 
 # Firebase configuration
 **/google-services.json
+
+# Ferramentas administrativas
+tools/node_modules/
+
+# Chaves de administrador do Firebase: nunca devem ir para o repositório
+*firebase-adminsdk*.json
+*serviceAccount*.json
+*service-account*.json

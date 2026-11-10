@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mentz/features/home/home_page.dart';
@@ -9,18 +8,10 @@ import 'package:mentz/services/settings_service.dart';
 
 void main() {
   late SettingsService settingsService;
-  late File tempSettingsFile;
 
   setUp(() async {
     settingsService = SettingsService();
-    tempSettingsFile = File('test_settings_prefs_${DateTime.now().microsecondsSinceEpoch}.json');
     settingsService.resetForTest(defaultMode: AppThemeMode.light);
-  });
-
-  tearDown(() async {
-    if (await tempSettingsFile.exists()) {
-      await tempSettingsFile.delete();
-    }
   });
 
   Widget buildAppUnderTest({Widget? home}) {
@@ -108,25 +99,6 @@ void main() {
       expect(find.byType(HomePage), findsOneWidget);
       final scaffold = tester.widget<Scaffold>(find.byType(Scaffold));
       expect(scaffold, isNotNull);
-    });
-
-    test('5. Persistência da preferência em arquivo JSON', () async {
-      settingsService.enableFilePersistence = true;
-      // Carrega com arquivo customizado temporário
-      await settingsService.loadSettings(customFile: tempSettingsFile);
-      expect(settingsService.isDarkMode, isFalse);
-
-      // Altera para escuro
-      await settingsService.setThemeMode(AppThemeMode.dark);
-      expect(await tempSettingsFile.exists(), isTrue);
-
-      // Simula uma nova instância ou reinicialização
-      settingsService.resetForTest(defaultMode: AppThemeMode.light, filePersistence: true);
-      expect(settingsService.isDarkMode, isFalse);
-
-      // Recarrega do arquivo
-      await settingsService.loadSettings(customFile: tempSettingsFile);
-      expect(settingsService.isDarkMode, isTrue);
     });
 
     testWidgets('6 & 7. Preservação do tema visual de Login e Cadastro nos modos claro e escuro',

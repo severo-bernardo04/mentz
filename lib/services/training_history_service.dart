@@ -1,18 +1,43 @@
+import 'dart:async';
+
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
+
 import '../models/profile_models.dart';
 
-/// Serviço em memória / repositório para persistência do histórico de treinos executados.
-/// Compatível com expansão futura para Firebase Firestore ou SQLite.
+/// Histórico de treinos do usuário logado, salvo em
+/// `users/{uid}/sessions/{sessionId}`. A lista em memória acompanha o
+/// Firestore em tempo real, e as telas são avisadas a cada mudança.
 class TrainingHistoryService extends ChangeNotifier {
   static final TrainingHistoryService _instance =
       TrainingHistoryService._internal();
   factory TrainingHistoryService() => _instance;
 
-  TrainingHistoryService._internal() {
-    _initDefaultData();
-  }
+  TrainingHistoryService._internal();
 
-  final List<CompletedWorkout> _sessions = [];
+  /// Tempo máximo de espera pela confirmação do servidor. Sem internet, a
+  /// escrita fica na fila do Firestore e é enviada quando a conexão voltar.
+  static const _writeTimeout = Duration(seconds: 8);
+
+  FirebaseFirestore? _firestoreOverride;
+  StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? _subscription;
+  String? _uid;
+  List<CompletedWorkout> _sessions = [];
+
+  /// Concluído quando a primeira leitura termina, com sucesso ou erro.
+  Completer<void> _firstLoad = Completer<void>()..complete();
+
+  /// Último erro de leitura, repassado a quem pedir as sessões.
+  Object? _loadError;
+
+  FirebaseFirestore get _db => _firestoreOverride ?? FirebaseFirestore.instance;
+
+  /// Coleção do usuário logado. Falha se ninguém estiver autenticado.
+  CollectionReference<Map<String, dynamic>> get _collection {
+    final uid = _uid;
+    if (uid == null) throw StateError('Nenhum usuário autenticado.');
+    return _db.collection('users').doc(uid).collection('sessions');
+  }
 
   /// Retorna as sessões ordenadas do mais recente para o mais antigo.
   List<CompletedWorkout> get sessions {
@@ -21,560 +46,70 @@ class TrainingHistoryService extends ChangeNotifier {
     return List.unmodifiable(list);
   }
 
-  void _initDefaultData() {
-    if (_sessions.isNotEmpty) return;
+  /// Começa a acompanhar o histórico de [uid].
+  void watchUser(String uid) {
+    if (_uid == uid) return;
 
-    final now = DateTime.now();
-    DateTime daysAgo(int d) => now.subtract(Duration(days: d));
+    _subscription?.cancel();
+    _uid = uid;
+    _sessions = [];
+    _loadError = null;
+    _firstLoad = Completer<void>();
 
-    _sessions.addAll([
-      CompletedWorkout(
-        daysAgo(1),
-        'A',
-        62,
-        id: 'sess-1',
-        chartName: 'Training Charts 1',
-        workoutName: 'TREINO A — Peito e Tríceps',
-        executedExercises: [
-          const ExecutedExercise(
-            name: 'Supino reto',
-            muscle: 'Peito',
-            sets: [
-              ExecutedSet(
-                setNumber: 1,
-                type: SetType.warmup,
-                load: '40 kg',
-                reps: '12',
-              ),
-              ExecutedSet(
-                setNumber: 2,
-                type: SetType.working,
-                load: '60 kg',
-                reps: '10',
-              ),
-              ExecutedSet(
-                setNumber: 3,
-                type: SetType.working,
-                load: '60 kg',
-                reps: '9',
-              ),
-              ExecutedSet(
-                setNumber: 4,
-                type: SetType.working,
-                load: '62.5 kg',
-                reps: '8',
-              ),
-            ],
-          ),
-          const ExecutedExercise(
-            name: 'Supino inclinado com halteres',
-            muscle: 'Peito',
-            sets: [
-              ExecutedSet(
-                setNumber: 1,
-                type: SetType.working,
-                load: '24 kg',
-                reps: '12',
-              ),
-              ExecutedSet(
-                setNumber: 2,
-                type: SetType.working,
-                load: '24 kg',
-                reps: '10',
-              ),
-              ExecutedSet(
-                setNumber: 3,
-                type: SetType.working,
-                load: '24 kg',
-                reps: '10',
-              ),
-            ],
-          ),
-          const ExecutedExercise(
-            name: 'Crucifixo na máquina',
-            muscle: 'Peito',
-            sets: [
-              ExecutedSet(
-                setNumber: 1,
-                type: SetType.working,
-                load: '40 kg',
-                reps: '12',
-              ),
-              ExecutedSet(
-                setNumber: 2,
-                type: SetType.working,
-                load: '40 kg',
-                reps: '12',
-              ),
-              ExecutedSet(
-                setNumber: 3,
-                type: SetType.dropSet,
-                load: '40 kg / 30 kg',
-                reps: '12 + 6',
-              ),
-            ],
-          ),
-          const ExecutedExercise(
-            name: 'Tríceps testa',
-            muscle: 'Tríceps',
-            sets: [
-              ExecutedSet(
-                setNumber: 1,
-                type: SetType.working,
-                load: '25 kg',
-                reps: '12',
-              ),
-              ExecutedSet(
-                setNumber: 2,
-                type: SetType.working,
-                load: '25 kg',
-                reps: '12',
-              ),
-              ExecutedSet(
-                setNumber: 3,
-                type: SetType.working,
-                load: '25 kg',
-                reps: '10',
-              ),
-            ],
-          ),
-          const ExecutedExercise(
-            name: 'Tríceps na polia',
-            muscle: 'Tríceps',
-            sets: [
-              ExecutedSet(
-                setNumber: 1,
-                type: SetType.working,
-                load: '30 kg',
-                reps: '15',
-              ),
-              ExecutedSet(
-                setNumber: 2,
-                type: SetType.working,
-                load: '30 kg',
-                reps: '15',
-              ),
-              ExecutedSet(
-                setNumber: 3,
-                type: SetType.failure,
-                load: '32.5 kg',
-                reps: '13',
-              ),
-            ],
-          ),
-        ],
-      ),
-      CompletedWorkout(
-        daysAgo(3),
-        'C',
-        71,
-        id: 'sess-2',
-        chartName: 'Training Charts 1',
-        workoutName: 'TREINO C — Pernas e Ombros',
-        executedExercises: [
-          const ExecutedExercise(
-            name: 'Agachamento livre',
-            muscle: 'Quadríceps',
-            sets: [
-              ExecutedSet(
-                setNumber: 1,
-                type: SetType.warmup,
-                load: '60 kg',
-                reps: '10',
-              ),
-              ExecutedSet(
-                setNumber: 2,
-                type: SetType.working,
-                load: '80 kg',
-                reps: '8',
-              ),
-              ExecutedSet(
-                setNumber: 3,
-                type: SetType.working,
-                load: '85 kg',
-                reps: '8',
-              ),
-              ExecutedSet(
-                setNumber: 4,
-                type: SetType.working,
-                load: '90 kg',
-                reps: '6',
-              ),
-            ],
-          ),
-          const ExecutedExercise(
-            name: 'Leg press 45°',
-            muscle: 'Quadríceps',
-            sets: [
-              ExecutedSet(
-                setNumber: 1,
-                type: SetType.working,
-                load: '180 kg',
-                reps: '12',
-              ),
-              ExecutedSet(
-                setNumber: 2,
-                type: SetType.working,
-                load: '200 kg',
-                reps: '10',
-              ),
-              ExecutedSet(
-                setNumber: 3,
-                type: SetType.working,
-                load: '200 kg',
-                reps: '10',
-              ),
-            ],
-          ),
-          const ExecutedExercise(
-            name: 'Desenvolvimento com halteres',
-            muscle: 'Ombros',
-            sets: [
-              ExecutedSet(
-                setNumber: 1,
-                type: SetType.working,
-                load: '20 kg',
-                reps: '10',
-              ),
-              ExecutedSet(
-                setNumber: 2,
-                type: SetType.working,
-                load: '20 kg',
-                reps: '10',
-              ),
-              ExecutedSet(
-                setNumber: 3,
-                type: SetType.working,
-                load: '22 kg',
-                reps: '8',
-              ),
-            ],
-          ),
-          const ExecutedExercise(
-            name: 'Elevação lateral',
-            muscle: 'Ombros',
-            sets: [
-              ExecutedSet(
-                setNumber: 1,
-                type: SetType.working,
-                load: '8 kg',
-                reps: '15',
-              ),
-              ExecutedSet(
-                setNumber: 2,
-                type: SetType.working,
-                load: '8 kg',
-                reps: '15',
-              ),
-              ExecutedSet(
-                setNumber: 3,
-                type: SetType.dropSet,
-                load: '10 kg / 6 kg',
-                reps: '12 + 6',
-              ),
-            ],
-          ),
-        ],
-      ),
-      CompletedWorkout(
-        daysAgo(4),
-        'B',
-        58,
-        id: 'sess-3',
-        chartName: 'Training Charts 1',
-        workoutName: 'TREINO B — Costas e Bíceps',
-        executedExercises: [
-          const ExecutedExercise(
-            name: 'Puxada frontal',
-            muscle: 'Costas',
-            sets: [
-              ExecutedSet(
-                setNumber: 1,
-                type: SetType.working,
-                load: '55 kg',
-                reps: '10',
-              ),
-              ExecutedSet(
-                setNumber: 2,
-                type: SetType.working,
-                load: '55 kg',
-                reps: '10',
-              ),
-              ExecutedSet(
-                setNumber: 3,
-                type: SetType.working,
-                load: '60 kg',
-                reps: '8',
-              ),
-            ],
-          ),
-          const ExecutedExercise(
-            name: 'Remada curvada',
-            muscle: 'Costas',
-            sets: [
-              ExecutedSet(
-                setNumber: 1,
-                type: SetType.working,
-                load: '50 kg',
-                reps: '10',
-              ),
-              ExecutedSet(
-                setNumber: 2,
-                type: SetType.working,
-                load: '50 kg',
-                reps: '8',
-              ),
-              ExecutedSet(
-                setNumber: 3,
-                type: SetType.working,
-                load: '52.5 kg',
-                reps: '8',
-              ),
-            ],
-          ),
-          const ExecutedExercise(
-            name: 'Rosca direta',
-            muscle: 'Bíceps',
-            sets: [
-              ExecutedSet(
-                setNumber: 1,
-                type: SetType.working,
-                load: '30 kg',
-                reps: '12',
-              ),
-              ExecutedSet(
-                setNumber: 2,
-                type: SetType.working,
-                load: '30 kg',
-                reps: '10',
-              ),
-              ExecutedSet(
-                setNumber: 3,
-                type: SetType.working,
-                load: '30 kg',
-                reps: '10',
-              ),
-            ],
-          ),
-          const ExecutedExercise(
-            name: 'Rosca martelo',
-            muscle: 'Bíceps',
-            completed: false, // Demonstração do estado "não concluído"
-            notes: 'Interrompido por dor no antebraço',
-            sets: [
-              ExecutedSet(
-                setNumber: 1,
-                type: SetType.working,
-                load: '14 kg',
-                reps: '6',
-                completed: false,
-              ),
-            ],
-          ),
-        ],
-      ),
-      CompletedWorkout(
-        daysAgo(6),
-        'A',
-        64,
-        id: 'sess-4',
-        chartName: 'Training Charts 1',
-        workoutName: 'TREINO A — Peito e Tríceps',
-        executedExercises: [
-          const ExecutedExercise(
-            name: 'Supino reto',
-            muscle: 'Peito',
-            sets: [
-              ExecutedSet(
-                setNumber: 1,
-                type: SetType.warmup,
-                load: '40 kg',
-                reps: '12',
-              ),
-              ExecutedSet(
-                setNumber: 2,
-                type: SetType.working,
-                load: '57.5 kg',
-                reps: '10',
-              ),
-              ExecutedSet(
-                setNumber: 3,
-                type: SetType.working,
-                load: '57.5 kg',
-                reps: '10',
-              ),
-            ],
-          ),
-          const ExecutedExercise(
-            name: 'Supino inclinado com halteres',
-            muscle: 'Peito',
-            sets: [
-              ExecutedSet(
-                setNumber: 1,
-                type: SetType.working,
-                load: '22 kg',
-                reps: '12',
-              ),
-              ExecutedSet(
-                setNumber: 2,
-                type: SetType.working,
-                load: '22 kg',
-                reps: '12',
-              ),
-            ],
-          ),
-          const ExecutedExercise(
-            name: 'Crucifixo na máquina',
-            muscle: 'Peito',
-            sets: [
-              ExecutedSet(
-                setNumber: 1,
-                type: SetType.working,
-                load: '35 kg',
-                reps: '12',
-              ),
-              ExecutedSet(
-                setNumber: 2,
-                type: SetType.working,
-                load: '35 kg',
-                reps: '12',
-              ),
-            ],
-          ),
-          const ExecutedExercise(
-            name: 'Tríceps testa',
-            muscle: 'Tríceps',
-            sets: [
-              ExecutedSet(
-                setNumber: 1,
-                type: SetType.working,
-                load: '22.5 kg',
-                reps: '12',
-              ),
-              ExecutedSet(
-                setNumber: 2,
-                type: SetType.working,
-                load: '22.5 kg',
-                reps: '12',
-              ),
-            ],
-          ),
-          const ExecutedExercise(
-            name: 'Tríceps na polia',
-            muscle: 'Tríceps',
-            sets: [
-              ExecutedSet(
-                setNumber: 1,
-                type: SetType.working,
-                load: '27.5 kg',
-                reps: '15',
-              ),
-              ExecutedSet(
-                setNumber: 2,
-                type: SetType.working,
-                load: '27.5 kg',
-                reps: '15',
-              ),
-            ],
-          ),
-        ],
-      ),
-      CompletedWorkout(
-        daysAgo(8),
-        'C',
-        69,
-        id: 'sess-5',
-        chartName: 'Training Charts 1',
-        workoutName: 'TREINO C — Pernas e Ombros',
-        executedExercises: [
-          const ExecutedExercise(
-            name: 'Agachamento livre',
-            muscle: 'Quadríceps',
-            sets: [
-              ExecutedSet(
-                setNumber: 1,
-                type: SetType.working,
-                load: '75 kg',
-                reps: '8',
-              ),
-              ExecutedSet(
-                setNumber: 2,
-                type: SetType.working,
-                load: '80 kg',
-                reps: '8',
-              ),
-            ],
-          ),
-          const ExecutedExercise(
-            name: 'Leg press 45°',
-            muscle: 'Quadríceps',
-            sets: [
-              ExecutedSet(
-                setNumber: 1,
-                type: SetType.working,
-                load: '170 kg',
-                reps: '12',
-              ),
-              ExecutedSet(
-                setNumber: 2,
-                type: SetType.working,
-                load: '170 kg',
-                reps: '12',
-              ),
-            ],
-          ),
-          const ExecutedExercise(
-            name: 'Desenvolvimento com halteres',
-            muscle: 'Ombros',
-            sets: [
-              ExecutedSet(
-                setNumber: 1,
-                type: SetType.working,
-                load: '18 kg',
-                reps: '10',
-              ),
-              ExecutedSet(
-                setNumber: 2,
-                type: SetType.working,
-                load: '18 kg',
-                reps: '10',
-              ),
-            ],
-          ),
-          const ExecutedExercise(
-            name: 'Elevação lateral',
-            muscle: 'Ombros',
-            sets: [
-              ExecutedSet(
-                setNumber: 1,
-                type: SetType.working,
-                load: '7 kg',
-                reps: '15',
-              ),
-              ExecutedSet(
-                setNumber: 2,
-                type: SetType.working,
-                load: '7 kg',
-                reps: '15',
-              ),
-            ],
-          ),
-        ],
-      ),
-    ]);
+    _subscription = _collection.snapshots().listen(
+      _onSnapshot,
+      onError: _onLoadError,
+    );
   }
 
-  /// Carrega as sessões de treino com simulação de latência assíncrona.
+  /// Para de acompanhar [uid] e limpa os dados dele da memória.
+  /// Ignora a chamada se outro usuário já estiver sendo acompanhado.
+  void stopWatching(String uid) {
+    if (_uid != uid) return;
+
+    _subscription?.cancel();
+    _subscription = null;
+    _uid = null;
+    _sessions = [];
+    _loadError = null;
+    if (!_firstLoad.isCompleted) _firstLoad.complete();
+  }
+
+  void _onSnapshot(QuerySnapshot<Map<String, dynamic>> snapshot) {
+    try {
+      _sessions = [
+        for (final doc in snapshot.docs)
+          CompletedWorkout.fromMap(doc.id, doc.data()),
+      ];
+      _loadError = null;
+      if (!_firstLoad.isCompleted) _firstLoad.complete();
+      notifyListeners();
+    } catch (error) {
+      _onLoadError(error);
+    }
+  }
+
+  void _onLoadError(Object error) {
+    _loadError = error;
+    if (!_firstLoad.isCompleted) _firstLoad.complete();
+  }
+
+  /// Carrega as sessões, esperando a primeira leitura do Firestore.
   Future<List<CompletedWorkout>> loadSessions() async {
-    await Future.delayed(const Duration(milliseconds: 200));
+    if (!_firstLoad.isCompleted) await _firstLoad.future;
+
+    final error = _loadError;
+    if (error != null) throw error;
+
     return sessions;
   }
 
   /// Adiciona uma nova sessão concluída ao histórico.
-  Future<void> addSession(CompletedWorkout session) async {
-    await Future.delayed(const Duration(milliseconds: 100));
-    _sessions.insert(0, session);
-    notifyListeners();
+  Future<void> addSession(CompletedWorkout session) {
+    return _collection
+        .doc(session.id)
+        .set(session.toMap())
+        .timeout(_writeTimeout, onTimeout: () {});
   }
 
   /// Retorna as sessões associadas a um plano/dia específico (ex: 'A', 'B', 'C').
@@ -600,16 +135,29 @@ class TrainingHistoryService extends ChangeNotifier {
     return list;
   }
 
+  /// Passa a usar um Firestore de teste, acompanhando [uid].
+  @visibleForTesting
+  void startForTest(FirebaseFirestore firestore, {required String uid}) {
+    _subscription?.cancel();
+    _uid = null;
+    _firestoreOverride = firestore;
+    watchUser(uid);
+  }
+
   @visibleForTesting
   void clearForTest() {
-    _sessions.clear();
+    _subscription?.cancel();
+    _subscription = null;
+    _uid = null;
+    _sessions = [];
+    _loadError = null;
+    _firstLoad = Completer<void>()..complete();
     notifyListeners();
   }
 
   @visibleForTesting
   void setSessionsForTest(List<CompletedWorkout> list) {
-    _sessions.clear();
-    _sessions.addAll(list);
+    _sessions = List.of(list);
     notifyListeners();
   }
 }

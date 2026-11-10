@@ -1,0 +1,12 @@
+{
+  "name": "mentz-tools",
+  "private": true,
+  "description": "Ferramentas administrativas do Mentz.",
+  "scripts": {
+    "import": "node import_catalog.js",
+    "test": "node --test import_catalog.test.js"
+  },
+  "dependencies": {
+    "firebase-admin": "^14.5.0"
+  }
+}

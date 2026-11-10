@@ -13,13 +13,23 @@ class ExecutedExerciseCard extends StatelessWidget {
     required this.exercise,
   });
 
-  Color _typeColor(SetType type, ColorScheme cs) {
-    return switch (type) {
-      SetType.warmup => Colors.blueGrey,
-      SetType.working => cs.primary,
-      SetType.failure => Colors.deepOrange,
-      SetType.dropSet => Colors.purple,
-    };
+  /// Etiqueta colorida usada para o tipo da série e para o drop set.
+  Widget _buildSetTag(String label, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(
+        color: color.withAlpha(25),
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          fontSize: 10,
+          fontWeight: FontWeight.w700,
+          color: color,
+        ),
+      ),
+    );
   }
 
   @override
@@ -204,33 +214,22 @@ class ExecutedExerciseCard extends StatelessWidget {
                               ),
                             ),
                           ),
+                          // Tipo da série e, quando houver, o drop set que a acompanha
                           Expanded(
-                            child: Align(
-                              alignment: Alignment.centerLeft,
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 6,
-                                  vertical: 2,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: _typeColor(s.type, cs).withAlpha(25),
-                                  borderRadius: BorderRadius.circular(6),
-                                ),
-                                child: Text(
-                                  s.type.label,
-                                  style: TextStyle(
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.w700,
-                                    color: _typeColor(s.type, cs),
-                                  ),
-                                ),
-                              ),
+                            child: Wrap(
+                              spacing: 4,
+                              runSpacing: 4,
+                              children: [
+                                _buildSetTag(s.type.label, s.type.color),
+                                if (s.isDropSet)
+                                  _buildSetTag(dropSetLabel, dropSetColor),
+                              ],
                             ),
                           ),
                           SizedBox(
                             width: 80,
                             child: Text(
-                              s.load,
+                              s.loadLabel,
                               style: const TextStyle(
                                 fontWeight: FontWeight.w700,
                                 fontSize: 12,
@@ -240,7 +239,7 @@ class ExecutedExerciseCard extends StatelessWidget {
                           SizedBox(
                             width: 60,
                             child: Text(
-                              s.reps,
+                              s.repsLabel,
                               style: const TextStyle(
                                 fontWeight: FontWeight.w600,
                                 fontSize: 12,

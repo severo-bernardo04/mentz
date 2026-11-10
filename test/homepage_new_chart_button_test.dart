@@ -1,7 +1,10 @@
+import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mentz/features/training/create_training_chart_page.dart';
 import 'package:mentz/features/home/home_page.dart';
+import 'package:mentz/models/profile_models.dart';
+import 'package:mentz/services/exercise_catalog_service.dart';
 import 'package:mentz/services/training_chart_service.dart';
 
 void main() {
@@ -9,7 +12,10 @@ void main() {
 
   setUp(() {
     service = TrainingChartService();
-    service.clearForTest();
+    ExerciseCatalogService().setExercisesForTest([
+      Exercise(id: 'supino-reto', name: 'Supino reto', muscle: 'Peito'),
+    ]);
+    service.startForTest(FakeFirebaseFirestore(), uid: 'test-user');
   });
 
   Widget createHomePageUnderTest() {
@@ -66,6 +72,24 @@ void main() {
         'Treino Hipertrofia A/B/C',
       );
       await tester.pump();
+
+      // Mantém um único dia e adiciona um exercício do catálogo a ele
+      for (final day in [2, 1]) {
+        await tester.tap(find.byKey(Key('day_header_$day')));
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(Key('delete_day_button_$day')));
+        await tester.pumpAndSettle();
+      }
+      await tester.tap(find.byKey(const Key('add_exercise_button_0')));
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(const Key('exercise_sheet_choose_from_catalog_button')),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Selecionar').first);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Confirmar'));
+      await tester.pumpAndSettle();
 
       // Salva
       await tester.tap(find.text('Criar Planilha'));

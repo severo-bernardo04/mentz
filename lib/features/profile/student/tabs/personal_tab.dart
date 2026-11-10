@@ -30,18 +30,20 @@ class PersonalTab extends StatelessWidget {
               InfoRow(
                 icon: Icons.cake_outlined,
                 label: 'Nascimento',
-                value:
-                    '${formatDate(s.birthDate)}  •  ${ageFrom(s.birthDate)} anos',
+                value: s.birthDate == null
+                    ? notInformed
+                    : '${formatDate(s.birthDate!)}  •  '
+                          '${ageFrom(s.birthDate!)} anos',
               ),
               InfoRow(
                 icon: Icons.mail_outline,
                 label: 'E-mail',
-                value: s.email,
+                value: s.email.isEmpty ? notInformed : s.email,
               ),
               InfoRow(
                 icon: Icons.phone_outlined,
                 label: 'Telefone',
-                value: s.phone,
+                value: s.phone ?? notInformed,
               ),
               if (s.sex != null)
                 InfoRow(
@@ -55,18 +57,22 @@ class PersonalTab extends StatelessWidget {
         SectionCard(
           title: 'Matrícula',
           icon: Icons.card_membership_outlined,
-          trailing: StatusChip.active(s.enrollmentActive),
+          trailing: s.enrollmentActive == null
+              ? null
+              : StatusChip.active(s.enrollmentActive!),
           child: Column(
             children: [
               InfoRow(
                 icon: Icons.event_available_outlined,
                 label: 'Data de matrícula',
-                value: formatDate(s.enrollmentDate),
+                value: s.enrollmentDate == null
+                    ? notInformed
+                    : formatDate(s.enrollmentDate!),
               ),
               InfoRow(
                 icon: Icons.workspace_premium_outlined,
                 label: 'Plano da academia',
-                value: s.plan,
+                value: s.plan ?? notInformed,
               ),
             ],
           ),

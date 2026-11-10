@@ -1,11 +1,14 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
-/// Modelos e dados de exemplo (mock) dos perfis de aluno e treinador.
-/// Quando houver backend (ex: Firestore), basta trocar os `sample` por dados reais.
+/// Modelos dos perfis de aluno e treinador e dos treinos.
 
 enum UserRole { student, trainer }
 
 // ───────────────────────── Utilitários ─────────────────────────
+
+/// Texto exibido no lugar de um dado que o usuário ainda não cadastrou.
+const notInformed = 'Não informado';
 
 const weekdayShort = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'];
 
@@ -24,9 +27,6 @@ int ageFrom(DateTime birth) {
   }
   return age;
 }
-
-DateTime _daysAgo(int d) => DateTime.now().subtract(Duration(days: d));
-DateTime _inDays(int d) => DateTime.now().add(Duration(days: d));
 
 // ───────────────────────── Aluno ─────────────────────────
 
@@ -62,13 +62,87 @@ class BodyMeasure {
       this.thigh);
 }
 
+/// Série planejada de um exercício: tipo, faixa de repetições e drop set.
+/// A carga e as repetições realizadas só são registradas na execução.
+class PlannedSet {
+  final SetType type;
+  final int minReps;
+  final int maxReps;
+
+  /// Indica se a série tem drop set. Não pode acompanhar [SetType.feeder].
+  final bool isDropSet;
+
+  const PlannedSet({
+    this.type = SetType.working,
+    required this.minReps,
+    required this.maxReps,
+    this.isDropSet = false,
+  }) : assert(minReps > 0, 'A faixa deve começar em pelo menos 1 repetição.'),
+       assert(minReps <= maxReps, 'O mínimo não pode ser maior que o máximo.'),
+       assert(
+         !isDropSet || type != SetType.feeder,
+         'Drop set só pode acompanhar séries de Trabalho ou Aquecimento.',
+       );
+
+  /// Cria [count] séries iguais, com a mesma faixa de repetições.
+  static List<PlannedSet> repeat(
+    int count, {
+    required int minReps,
+    required int maxReps,
+  }) => List.filled(count, PlannedSet(minReps: minReps, maxReps: maxReps));
+
+  /// Lê uma faixa digitada como "8-10". Séries de Reconhecimento também
+  /// aceitam um valor único, como "2". Retorna null se o formato for inválido,
+  /// se começar em zero ou se o mínimo for maior que o máximo.
+  static PlannedSet? tryParse(String text, {SetType type = SetType.working}) {
+    final match = RegExp(
+      r'^\s*(\d{1,3})\s*(?:[-–]\s*(\d{1,3})\s*)?$',
+    ).firstMatch(text);
+    if (match == null) return null;
+    if (match.group(2) == null && type != SetType.feeder) return null;
+
+    final min = int.parse(match.group(1)!);
+    final max = int.parse(match.group(2) ?? match.group(1)!);
+    if (min < 1 || min > max) return null;
+
+    return PlannedSet(type: type, minReps: min, maxReps: max);
+  }
+
+  /// Faixa para exibição (ex: "8–10").
+  String get repsLabel => minReps == maxReps ? '$minReps' : '$minReps–$maxReps';
+
+  /// Faixa no formato aceito por [tryParse] (ex: "8-10").
+  String get repsInput => type == SetType.feeder && minReps == maxReps
+      ? '$minReps'
+      : '$minReps-$maxReps';
+
+  Map<String, dynamic> toMap() => {
+        'type': type.name,
+        'minReps': minReps,
+        'maxReps': maxReps,
+        'isDropSet': isDropSet,
+      };
+
+  factory PlannedSet.fromMap(Map<String, dynamic> map) {
+    return PlannedSet(
+      type: SetType.values.firstWhere(
+        (e) => e.name == map['type'],
+        orElse: () => SetType.working,
+      ),
+      minReps: (map['minReps'] as num?)?.toInt() ?? 1,
+      maxReps: (map['maxReps'] as num?)?.toInt() ?? 1,
+      isDropSet: map['isDropSet'] as bool? ?? false,
+    );
+  }
+}
+
+/// Exercício do catálogo: guarda apenas os dados fixos do exercício.
+/// O que varia de treino para treino fica em [WorkoutExercise].
 class Exercise {
+  /// Identificador fixo no catálogo, usado para referenciar o exercício.
+  String? id;
   String name;
   String muscle;
-  int sets;
-  String reps;
-  String load;
-  int restSeconds;
   String? nameEn;
   String? primaryMuscle;
   List<String> highActivationMuscles;
@@ -77,12 +151,9 @@ class Exercise {
   String? instructions;
 
   Exercise({
+    this.id,
     required this.name,
     this.muscle = '',
-    this.sets = 3,
-    this.reps = '12',
-    this.load = '—',
-    this.restSeconds = 60,
     this.nameEn,
     this.primaryMuscle,
     this.highActivationMuscles = const [],
@@ -94,17 +165,10 @@ class Exercise {
   String get displayPrimaryMuscle =>
       primaryMuscle ?? (muscle.isNotEmpty ? muscle : 'Geral');
 
-  String get restLabel => restSeconds >= 60 && restSeconds % 60 == 0
-      ? '${restSeconds ~/ 60} min'
-      : '${restSeconds}s';
-
   Exercise copyWith({
+    String? id,
     String? name,
     String? muscle,
-    int? sets,
-    String? reps,
-    String? load,
-    int? restSeconds,
     String? nameEn,
     String? primaryMuscle,
     List<String>? highActivationMuscles,
@@ -113,12 +177,9 @@ class Exercise {
     String? instructions,
   }) {
     return Exercise(
+      id: id ?? this.id,
       name: name ?? this.name,
       muscle: muscle ?? this.muscle,
-      sets: sets ?? this.sets,
-      reps: reps ?? this.reps,
-      load: load ?? this.load,
-      restSeconds: restSeconds ?? this.restSeconds,
       nameEn: nameEn ?? this.nameEn,
       primaryMuscle: primaryMuscle ?? this.primaryMuscle,
       highActivationMuscles:
@@ -130,12 +191,9 @@ class Exercise {
   }
 
   Map<String, dynamic> toMap() => {
+        'id': id,
         'name': name,
         'muscle': muscle,
-        'sets': sets,
-        'reps': reps,
-        'load': load,
-        'restSeconds': restSeconds,
         'nameEn': nameEn,
         'primaryMuscle': primaryMuscle,
         'highActivationMuscles': highActivationMuscles,
@@ -144,14 +202,12 @@ class Exercise {
         'instructions': instructions,
       };
 
-  factory Exercise.fromMap(Map<String, dynamic> map) {
+  /// [id] é o identificador do documento no Firestore.
+  factory Exercise.fromMap(String id, Map<String, dynamic> map) {
     return Exercise(
+      id: id,
       name: map['name'] as String? ?? '',
       muscle: map['muscle'] as String? ?? '',
-      sets: (map['sets'] as num?)?.toInt() ?? 3,
-      reps: map['reps'] as String? ?? '12',
-      load: map['load'] as String? ?? '—',
-      restSeconds: (map['restSeconds'] as num?)?.toInt() ?? 60,
       nameEn: map['nameEn'] as String?,
       primaryMuscle: map['primaryMuscle'] as String?,
       highActivationMuscles: (map['highActivationMuscles'] as List?)
@@ -168,11 +224,103 @@ class Exercise {
   }
 }
 
+/// Busca um exercício do catálogo pelo identificador.
+typedef ExerciseLookup = Exercise? Function(String id);
+
+const _defaultPlannedSets = [
+  PlannedSet(minReps: 10, maxReps: 12),
+  PlannedSet(minReps: 10, maxReps: 12),
+  PlannedSet(minReps: 10, maxReps: 12),
+];
+
+/// Exercício dentro de um treino: referencia o catálogo e guarda o que é
+/// próprio daquele treino, como as séries, a faixa de repetições e o descanso.
+/// A carga não fica aqui: ela só é informada durante a execução.
+class WorkoutExercise {
+  Exercise exercise;
+
+  /// Séries planejadas, na ordem de execução. Nunca fica vazia.
+  List<PlannedSet> plannedSets;
+
+  /// Descanso sugerido em segundos. É opcional: null quando não há sugestão.
+  int? restSeconds;
+
+  WorkoutExercise({
+    required this.exercise,
+    this.plannedSets = _defaultPlannedSets,
+    this.restSeconds,
+  }) : assert(plannedSets.isNotEmpty, 'O exercício precisa de ao menos uma série.');
+
+  String get name => exercise.name;
+  String get muscle => exercise.muscle;
+
+  /// Resumo das séries, agrupando faixas seguidas iguais
+  /// (ex: "4 × 8–10" ou "1 × 15–20 + 3 × 8–10").
+  String get setsLabel {
+    final parts = <String>[];
+    var count = 0;
+    for (var i = 0; i < plannedSets.length; i++) {
+      count++;
+      final isLast = i == plannedSets.length - 1;
+      if (isLast || plannedSets[i + 1].repsLabel != plannedSets[i].repsLabel) {
+        parts.add('$count × ${plannedSets[i].repsLabel}');
+        count = 0;
+      }
+    }
+    return parts.join(' + ');
+  }
+
+  /// Descanso para exibição (ex: "45s", "2 min" ou "1 min 35s").
+  /// É null quando o exercício não tem descanso sugerido.
+  String? get restLabel {
+    final rest = restSeconds;
+    if (rest == null) return null;
+
+    final minutes = rest ~/ 60;
+    final seconds = rest % 60;
+
+    if (minutes == 0) return '${seconds}s';
+    return seconds == 0 ? '$minutes min' : '$minutes min ${seconds}s';
+  }
+
+  /// Guarda só a referência ao catálogo, sem duplicar os dados do exercício.
+  Map<String, dynamic> toMap() {
+    assert(exercise.id != null, 'Só exercícios do catálogo podem ser salvos.');
+
+    return {
+      'exerciseId': exercise.id,
+      'plannedSets': plannedSets.map((s) => s.toMap()).toList(),
+      if (restSeconds != null) 'restSeconds': restSeconds,
+    };
+  }
+
+  /// Recupera os dados do exercício com [findExercise]. Se ele não existir
+  /// mais no catálogo, mantém a série planejada com um nome provisório.
+  factory WorkoutExercise.fromMap(
+    Map<String, dynamic> map, {
+    required ExerciseLookup findExercise,
+  }) {
+    final exerciseId = map['exerciseId'] as String? ?? '';
+    final planned = (map['plannedSets'] as List?)
+        ?.map((s) => PlannedSet.fromMap(Map<String, dynamic>.from(s as Map)))
+        .toList();
+
+    return WorkoutExercise(
+      exercise: findExercise(exerciseId) ??
+          Exercise(id: exerciseId, name: 'Exercício indisponível'),
+      plannedSets: planned == null || planned.isEmpty
+          ? _defaultPlannedSets
+          : planned,
+      restSeconds: (map['restSeconds'] as num?)?.toInt(),
+    );
+  }
+}
+
 class WorkoutPlan {
   String id;
   String name; // A, B, C...
   String focus; // "Peito e tríceps"
-  List<Exercise> exercises;
+  List<WorkoutExercise> exercises;
   List<String> assignedStudents;
   String notes;
   double weeklyCompletion; // 0..1 (acompanhamento do treinador)
@@ -181,7 +329,7 @@ class WorkoutPlan {
     required this.id,
     required this.name,
     required this.focus,
-    List<Exercise>? exercises,
+    List<WorkoutExercise>? exercises,
     List<String>? assignedStudents,
     this.notes = '',
     this.weeklyCompletion = 0,
@@ -189,53 +337,134 @@ class WorkoutPlan {
         assignedStudents = assignedStudents ?? [];
 }
 
+/// Tipos de série, cada um com sua cor na interface.
+/// Apenas [working] conta como série válida para fins de evolução.
 enum SetType {
-  warmup('Aquecimento'),
-  working('Série válida'),
-  failure('Falha'),
-  dropSet('Drop set');
+  warmup('Aquecimento', Color(0xFF757575)), // Cinza
+  feeder('Reconhecimento', Color(0xFF8E24AA)), // Roxo
+  working('Trabalho', Color(0xFF1E88E5)); // Azul
 
   final String label;
-  const SetType(this.label);
+  final Color color;
+  const SetType(this.label, this.color);
+}
+
+/// Etiqueta do drop set, que não é um tipo: complementa uma série de
+/// Trabalho ou Aquecimento. A cor própria evita confusão com o Reconhecimento.
+const dropSetLabel = 'Drop set';
+const dropSetColor = Color(0xFF00897B); // Verde-azulado
+
+/// Formata um número sem casas decimais quando for um valor inteiro.
+String _formatNumber(double value) =>
+    '${value == value.roundToDouble() ? value.toInt() : value}';
+
+/// Formata uma carga em kg (ex: "57.5 kg").
+String _formatKg(double value) => '${_formatNumber(value)} kg';
+
+/// Etapa seguinte de um drop set: nova carga e repetições feitas nela.
+/// Os dois valores aceitam apenas passos de 0,5.
+class DropStage {
+  final double loadKg;
+  final double reps;
+
+  const DropStage({required this.loadKg, required this.reps})
+    : assert(
+        loadKg >= 0 && (loadKg * 2) % 1 == 0,
+        'A carga deve ser positiva e variar de 0,5 em 0,5.',
+      ),
+      assert(
+        reps >= 0 && (reps * 2) % 1 == 0,
+        'As repetições devem ser positivas e variar de 0,5 em 0,5.',
+      );
+
+  Map<String, dynamic> toMap() => {'loadKg': loadKg, 'reps': reps};
+
+  factory DropStage.fromMap(Map<String, dynamic> map) {
+    return DropStage(
+      loadKg: (map['loadKg'] as num?)?.toDouble() ?? 0,
+      reps: (map['reps'] as num?)?.toDouble() ?? 0,
+    );
+  }
 }
 
 class ExecutedSet {
   final int setNumber;
   final SetType type;
-  final String load;
-  final String reps;
+
+  /// Carga em kg, em passos de 0,5. Em um drop set, é a carga da primeira etapa.
+  final double loadKg;
+
+  /// Repetições realizadas, em passos de 0,5. Em um drop set, são as da primeira etapa.
+  final double reps;
   final bool completed;
+
+  /// Indica se a série tem drop set. Não pode acompanhar [SetType.feeder].
+  final bool isDropSet;
+
+  /// Etapas do drop set depois da primeira.
+  final List<DropStage> dropStages;
 
   const ExecutedSet({
     required this.setNumber,
     this.type = SetType.working,
-    required this.load,
+    required this.loadKg,
     required this.reps,
     this.completed = true,
-  });
+    this.isDropSet = false,
+    this.dropStages = const [],
+  }) : assert(
+         loadKg >= 0 && (loadKg * 2) % 1 == 0,
+         'A carga deve ser positiva e variar de 0,5 em 0,5.',
+       ),
+       assert(
+         reps >= 0 && (reps * 2) % 1 == 0,
+         'As repetições devem ser positivas e variar de 0,5 em 0,5.',
+       ),
+       assert(
+         !isDropSet || type != SetType.feeder,
+         'Drop set só pode acompanhar séries de Trabalho ou Aquecimento.',
+       );
+
+  /// Carga com unidade, incluindo as etapas do drop set (ex: "40 kg / 30 kg").
+  String get loadLabel => [
+    _formatKg(loadKg),
+    for (final stage in dropStages) _formatKg(stage.loadKg),
+  ].join(' / ');
+
+  /// Repetições, incluindo as etapas do drop set (ex: "12 + 6").
+  String get repsLabel => [
+    _formatNumber(reps),
+    for (final stage in dropStages) _formatNumber(stage.reps),
+  ].join(' + ');
 
   ExecutedSet copyWith({
     int? setNumber,
     SetType? type,
-    String? load,
-    String? reps,
+    double? loadKg,
+    double? reps,
     bool? completed,
+    bool? isDropSet,
+    List<DropStage>? dropStages,
   }) {
     return ExecutedSet(
       setNumber: setNumber ?? this.setNumber,
       type: type ?? this.type,
-      load: load ?? this.load,
+      loadKg: loadKg ?? this.loadKg,
       reps: reps ?? this.reps,
       completed: completed ?? this.completed,
+      isDropSet: isDropSet ?? this.isDropSet,
+      dropStages: dropStages ?? this.dropStages,
     );
   }
 
   Map<String, dynamic> toMap() => {
         'setNumber': setNumber,
         'type': type.name,
-        'load': load,
+        'loadKg': loadKg,
         'reps': reps,
         'completed': completed,
+        'isDropSet': isDropSet,
+        'dropStages': dropStages.map((s) => s.toMap()).toList(),
       };
 
   factory ExecutedSet.fromMap(Map<String, dynamic> map) {
@@ -245,14 +474,24 @@ class ExecutedSet {
         (e) => e.name == map['type'],
         orElse: () => SetType.working,
       ),
-      load: map['load'] as String? ?? '—',
-      reps: map['reps'] as String? ?? '—',
+      loadKg: (map['loadKg'] as num?)?.toDouble() ?? 0,
+      reps: (map['reps'] as num?)?.toDouble() ?? 0,
       completed: map['completed'] as bool? ?? true,
+      isDropSet: map['isDropSet'] as bool? ?? false,
+      dropStages: (map['dropStages'] as List?)
+              ?.map((s) =>
+                  DropStage.fromMap(Map<String, dynamic>.from(s as Map)))
+              .toList() ??
+          const [],
     );
   }
 }
 
 class ExecutedExercise {
+  /// Referência ao catálogo, usada para calcular a evolução por músculo.
+  final String? exerciseId;
+
+  /// Nome e músculo guardados como foram no dia do treino.
   final String name;
   final String muscle;
   final List<ExecutedSet> sets;
@@ -260,6 +499,7 @@ class ExecutedExercise {
   final String? notes;
 
   const ExecutedExercise({
+    this.exerciseId,
     required this.name,
     this.muscle = '',
     this.sets = const [],
@@ -268,6 +508,7 @@ class ExecutedExercise {
   });
 
   ExecutedExercise copyWith({
+    String? exerciseId,
     String? name,
     String? muscle,
     List<ExecutedSet>? sets,
@@ -275,6 +516,7 @@ class ExecutedExercise {
     String? notes,
   }) {
     return ExecutedExercise(
+      exerciseId: exerciseId ?? this.exerciseId,
       name: name ?? this.name,
       muscle: muscle ?? this.muscle,
       sets: sets ?? this.sets,
@@ -284,15 +526,17 @@ class ExecutedExercise {
   }
 
   Map<String, dynamic> toMap() => {
+        if (exerciseId != null) 'exerciseId': exerciseId,
         'name': name,
         'muscle': muscle,
         'sets': sets.map((s) => s.toMap()).toList(),
         'completed': completed,
-        'notes': notes,
+        if (notes != null) 'notes': notes,
       };
 
   factory ExecutedExercise.fromMap(Map<String, dynamic> map) {
     return ExecutedExercise(
+      exerciseId: map['exerciseId'] as String?,
       name: map['name'] as String? ?? '',
       muscle: map['muscle'] as String? ?? '',
       sets: (map['sets'] as List?)
@@ -328,7 +572,7 @@ class CompletedWorkout {
   String get displayWorkoutName =>
       workoutName ?? (plan.startsWith('Treino') ? plan : 'Treino $plan');
 
-  String get displayChartName => chartName ?? 'Training Charts 1';
+  String get displayChartName => chartName ?? 'Planilha';
 
   String get weekdayName {
     const days = [
@@ -364,23 +608,21 @@ class CompletedWorkout {
   }
 
   Map<String, dynamic> toMap() => {
-        'id': id,
-        'date': date.toIso8601String(),
+        'date': Timestamp.fromDate(date),
         'plan': plan,
         'minutes': minutes,
-        'chartName': chartName,
-        'workoutName': workoutName,
+        if (chartName != null) 'chartName': chartName,
+        if (workoutName != null) 'workoutName': workoutName,
         'executedExercises': executedExercises.map((e) => e.toMap()).toList(),
       };
 
-  factory CompletedWorkout.fromMap(Map<String, dynamic> map) {
+  /// [id] é o identificador do documento no Firestore.
+  factory CompletedWorkout.fromMap(String id, Map<String, dynamic> map) {
     return CompletedWorkout(
-      map['date'] != null
-          ? DateTime.tryParse(map['date'] as String) ?? DateTime.now()
-          : DateTime.now(),
+      (map['date'] as Timestamp?)?.toDate() ?? DateTime.now(),
       map['plan'] as String? ?? '',
       (map['minutes'] as num?)?.toInt() ?? 0,
-      id: map['id'] as String?,
+      id: id,
       chartName: map['chartName'] as String?,
       workoutName: map['workoutName'] as String?,
       executedExercises: (map['executedExercises'] as List?)
@@ -408,37 +650,32 @@ class Achievement {
 }
 
 class StudentProfile {
-  // Informações pessoais
+  // Informações pessoais: nome e e-mail vêm da conta; o resto só se cadastrado
   final String name;
   final String email;
-  final String phone;
-  final DateTime birthDate;
-  final String? sex; // opcional
-  final DateTime enrollmentDate;
-  final String plan;
-  final bool enrollmentActive;
+  final String? phone;
+  final DateTime? birthDate;
+  final String? sex;
+  final DateTime? enrollmentDate;
+  final String? plan;
+  final bool? enrollmentActive;
   final String? photoUrl;
 
   // Dados físicos e objetivos (PRIVADOS)
-  final double heightCm;
-  final FitnessGoal goal;
-  final double? targetWeight; // opcional
-  final int weeklyTarget; // treinos/semana planejados
+  final double? heightCm;
+  final FitnessGoal? goal;
+  final double? targetWeight;
+  final int? weeklyTarget; // treinos/semana planejados
   final List<WeightEntry> weightHistory;
   final List<Assessment> assessments;
 
   // Treino
   final List<WorkoutPlan> workouts;
   final List<int> trainingDays; // 0 = seg ... 6 = dom
-  final String nextWorkoutLabel;
-  final String trainerName;
-  final List<CompletedWorkout> history;
+  final String? nextWorkoutLabel;
+  final String? trainerName;
 
   // Progresso
-  final int totalWorkouts;
-  final List<int> monthlyFrequency; // últimos 6 meses
-  final List<String> monthLabels;
-  final int streakWeeks;
   final List<PersonalRecord> records;
   final List<String> goalsReached;
   final List<BodyMeasure> measures;
@@ -447,231 +684,32 @@ class StudentProfile {
   const StudentProfile({
     required this.name,
     required this.email,
-    required this.phone,
-    required this.birthDate,
+    this.phone,
+    this.birthDate,
     this.sex,
-    required this.enrollmentDate,
-    required this.plan,
-    required this.enrollmentActive,
+    this.enrollmentDate,
+    this.plan,
+    this.enrollmentActive,
     this.photoUrl,
-    required this.heightCm,
-    required this.goal,
+    this.heightCm,
+    this.goal,
     this.targetWeight,
-    required this.weeklyTarget,
-    required this.weightHistory,
-    required this.assessments,
-    required this.workouts,
-    required this.trainingDays,
-    required this.nextWorkoutLabel,
-    required this.trainerName,
-    required this.history,
-    required this.totalWorkouts,
-    required this.monthlyFrequency,
-    required this.monthLabels,
-    required this.streakWeeks,
-    required this.records,
-    required this.goalsReached,
-    required this.measures,
-    required this.achievements,
+    this.weeklyTarget,
+    this.weightHistory = const [],
+    this.assessments = const [],
+    this.workouts = const [],
+    this.trainingDays = const [],
+    this.nextWorkoutLabel,
+    this.trainerName,
+    this.records = const [],
+    this.goalsReached = const [],
+    this.measures = const [],
+    this.achievements = const [],
   });
 
-  double get currentWeight => weightHistory.last.kg;
-
-  /// Treinos concluídos na semana corrente (mock: últimos 7 dias).
-  int get doneThisWeek =>
-      history.where((h) => DateTime.now().difference(h.date).inDays < 7).length;
-
-  static StudentProfile sample({String? name, String? email}) {
-    return StudentProfile(
-      name: (name != null && name.trim().isNotEmpty)
-          ? name.trim()
-          : 'Bernardo Almeida',
-      email: (email != null && email.isNotEmpty)
-          ? email
-          : 'bernardo@email.com',
-      phone: '(55) 99999-1234',
-      birthDate: DateTime(1999, 4, 12),
-      sex: 'Masculino',
-      enrollmentDate: DateTime(2025, 3, 10),
-      plan: 'Plano Trimestral',
-      enrollmentActive: true,
-      heightCm: 178,
-      goal: FitnessGoal.hypertrophy,
-      targetWeight: 82,
-      weeklyTarget: 5,
-      weightHistory: [
-        WeightEntry(DateTime(2026, 4, 1), 74.5),
-        WeightEntry(DateTime(2026, 5, 1), 75.2),
-        WeightEntry(DateTime(2026, 6, 1), 76.0),
-        WeightEntry(DateTime(2026, 7, 1), 76.8),
-        WeightEntry(DateTime(2026, 8, 1), 77.9),
-        WeightEntry(DateTime(2026, 9, 1), 78.4),
-        WeightEntry(DateTime(2026, 10, 1), 79.1),
-      ],
-      assessments: [
-        Assessment(DateTime(2026, 9, 5), 78.6, 14.2,
-            'Boa evolução de massa magra. Manter a progressão de carga.'),
-        Assessment(DateTime(2026, 6, 4), 76.1, 15.8,
-            'Ajustar o treino de pernas e aumentar o consumo de proteína.'),
-        Assessment(DateTime(2026, 3, 10), 74.5, 17.0, 'Avaliação inicial.'),
-      ],
-      workouts: [
-        WorkoutPlan(
-          id: 'a',
-          name: 'A',
-          focus: 'Peito e tríceps',
-          exercises: [
-            Exercise(
-                name: 'Supino reto',
-                muscle: 'Peito',
-                sets: 4,
-                reps: '8-10',
-                load: '60 kg',
-                restSeconds: 90),
-            Exercise(
-                name: 'Supino inclinado com halteres',
-                muscle: 'Peito',
-                sets: 3,
-                reps: '10-12',
-                load: '24 kg',
-                restSeconds: 75),
-            Exercise(
-                name: 'Crucifixo na máquina',
-                muscle: 'Peito',
-                sets: 3,
-                reps: '12',
-                load: '40 kg',
-                restSeconds: 60),
-            Exercise(
-                name: 'Tríceps testa',
-                muscle: 'Tríceps',
-                sets: 3,
-                reps: '12',
-                load: '25 kg',
-                restSeconds: 60),
-            Exercise(
-                name: 'Tríceps na polia',
-                muscle: 'Tríceps',
-                sets: 3,
-                reps: '15',
-                load: '30 kg',
-                restSeconds: 45),
-          ],
-        ),
-        WorkoutPlan(
-          id: 'b',
-          name: 'B',
-          focus: 'Costas e bíceps',
-          exercises: [
-            Exercise(
-                name: 'Puxada frontal',
-                muscle: 'Costas',
-                sets: 4,
-                reps: '10',
-                load: '55 kg',
-                restSeconds: 90),
-            Exercise(
-                name: 'Remada curvada',
-                muscle: 'Costas',
-                sets: 4,
-                reps: '8-10',
-                load: '50 kg',
-                restSeconds: 90),
-            Exercise(
-                name: 'Rosca direta',
-                muscle: 'Bíceps',
-                sets: 3,
-                reps: '12',
-                load: '30 kg',
-                restSeconds: 60),
-            Exercise(
-                name: 'Rosca martelo',
-                muscle: 'Bíceps',
-                sets: 3,
-                reps: '12',
-                load: '14 kg',
-                restSeconds: 60),
-          ],
-        ),
-        WorkoutPlan(
-          id: 'c',
-          name: 'C',
-          focus: 'Pernas e ombros',
-          exercises: [
-            Exercise(
-                name: 'Agachamento livre',
-                muscle: 'Quadríceps',
-                sets: 4,
-                reps: '8',
-                load: '80 kg',
-                restSeconds: 120),
-            Exercise(
-                name: 'Leg press 45°',
-                muscle: 'Quadríceps',
-                sets: 4,
-                reps: '12',
-                load: '180 kg',
-                restSeconds: 90),
-            Exercise(
-                name: 'Desenvolvimento com halteres',
-                muscle: 'Ombros',
-                sets: 3,
-                reps: '10',
-                load: '20 kg',
-                restSeconds: 75),
-            Exercise(
-                name: 'Elevação lateral',
-                muscle: 'Ombros',
-                sets: 3,
-                reps: '15',
-                load: '8 kg',
-                restSeconds: 45),
-          ],
-        ),
-      ],
-      trainingDays: [0, 1, 3, 4, 5],
-      nextWorkoutLabel: 'Treino B — Costas e bíceps',
-      trainerName: 'Carla Menezes',
-      history: [
-        CompletedWorkout(_daysAgo(1), 'A', 62),
-        CompletedWorkout(_daysAgo(3), 'C', 71),
-        CompletedWorkout(_daysAgo(4), 'B', 58),
-        CompletedWorkout(_daysAgo(6), 'A', 64),
-        CompletedWorkout(_daysAgo(8), 'C', 69),
-      ],
-      totalWorkouts: 148,
-      monthlyFrequency: [14, 16, 18, 15, 19, 17],
-      monthLabels: ['Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out'],
-      streakWeeks: 7,
-      records: [
-        PersonalRecord('Supino reto', '70 kg × 5', DateTime(2026, 9, 18)),
-        PersonalRecord('Agachamento livre', '100 kg × 5', DateTime(2026, 9, 25)),
-        PersonalRecord('Levantamento terra', '120 kg × 3', DateTime(2026, 8, 30)),
-      ],
-      goalsReached: [
-        'Treinar 4x por semana por 1 mês',
-        'Chegar a 75 kg',
-        'Supino com 60 kg',
-      ],
-      measures: [
-        BodyMeasure(DateTime(2026, 9, 5), 101, 82, 98, 36.5, 58),
-        BodyMeasure(DateTime(2026, 6, 4), 98, 83, 97, 35, 56.5),
-        BodyMeasure(DateTime(2026, 3, 10), 95, 85, 96, 33.5, 55),
-      ],
-      achievements: [
-        Achievement('Primeiro treino', 'Concluiu o 1º treino', Icons.flag, true),
-        Achievement('Sequência de 7 semanas', 'Treinou 7 semanas seguidas',
-            Icons.local_fire_department, true),
-        Achievement('100 treinos', 'Chegou a 100 treinos concluídos',
-            Icons.emoji_events, true),
-        Achievement('Meta de peso', 'Atingir a meta de peso',
-            Icons.monitor_weight, false),
-        Achievement('Madrugador', '20 treinos antes das 7h', Icons.wb_sunny, false),
-        Achievement('200 treinos', 'Chegar a 200 treinos', Icons.military_tech,
-            false),
-      ],
-    );
-  }
+  /// Peso mais recente; null se nenhum foi registrado.
+  double? get currentWeight =>
+      weightHistory.isEmpty ? null : weightHistory.last.kg;
 }
 
 
@@ -745,17 +783,18 @@ class Appointment {
 }
 
 class TrainerProfile {
+  // Nome e e-mail vêm da conta; o resto só aparece se tiver sido cadastrado
   final String name;
   final String email;
-  final String phone;
+  final String? phone;
   final String? photoUrl;
-  final TrainerRole role;
+  final TrainerRole? role;
   final String? cref;
   final List<String> specialties;
   final List<String> qualifications;
-  final int experienceYears;
+  final int? experienceYears;
   final Map<String, String> availability; // dia → horário
-  final bool employmentActive;
+  final bool? employmentActive;
 
   /// Permissão para ver a situação do plano/matrícula dos alunos.
   final bool canViewBilling;
@@ -768,208 +807,19 @@ class TrainerProfile {
   const TrainerProfile({
     required this.name,
     required this.email,
-    required this.phone,
+    this.phone,
     this.photoUrl,
-    required this.role,
+    this.role,
     this.cref,
-    required this.specialties,
-    required this.qualifications,
-    required this.experienceYears,
-    required this.availability,
-    required this.employmentActive,
-    required this.canViewBilling,
-    required this.students,
-    required this.plans,
-    required this.appointments,
-    required this.newStudents,
+    this.specialties = const [],
+    this.qualifications = const [],
+    this.experienceYears,
+    this.availability = const {},
+    this.employmentActive,
+    this.canViewBilling = false,
+    this.students = const [],
+    this.plans = const [],
+    this.appointments = const [],
+    this.newStudents = const [],
   });
-
-  static TrainerProfile sample({String? name, String? email}) {
-    return TrainerProfile(
-      name: (name != null && name.trim().isNotEmpty)
-          ? name.trim()
-          : 'Carla Menezes',
-      email: (email != null && email.isNotEmpty)
-          ? email
-          : 'carla.menezes@academia.com',
-      phone: '(55) 98888-4321',
-      role: TrainerRole.personal,
-      cref: '012345-G/RS',
-      specialties: ['Musculação', 'Hipertrofia', 'Funcional', 'Emagrecimento'],
-      qualifications: [
-        'Bacharelado em Educação Física — UFSM',
-        'Pós-graduação em Fisiologia do Exercício',
-        'Certificação em Avaliação Física',
-      ],
-      experienceYears: 8,
-      availability: {
-        'Seg a Sex': '06h às 12h e 15h às 20h',
-        'Sábado': '08h às 12h',
-      },
-      employmentActive: true,
-      canViewBilling: true,
-      students: [
-        StudentSummary(
-          id: '1',
-          name: 'Bernardo Almeida',
-          goal: FitnessGoal.hypertrophy,
-          currentWorkout: 'Treino B',
-          lastAssessment: _daysAgo(34),
-          nextFollowUp: _inDays(5),
-          planName: 'Trimestral',
-          enrollmentActive: true,
-          doneThisWeek: 4,
-          weeklyTarget: 5,
-        ),
-        StudentSummary(
-          id: '2',
-          name: 'Marina Souza',
-          goal: FitnessGoal.weightLoss,
-          currentWorkout: 'Treino A',
-          lastAssessment: _daysAgo(75),
-          nextFollowUp: _inDays(2),
-          planName: 'Mensal',
-          enrollmentActive: true,
-          doneThisWeek: 3,
-          weeklyTarget: 4,
-        ),
-        StudentSummary(
-          id: '3',
-          name: 'Lucas Pereira',
-          goal: FitnessGoal.conditioning,
-          currentWorkout: 'Treino C',
-          lastAssessment: _daysAgo(20),
-          nextFollowUp: _inDays(10),
-          planName: 'Anual',
-          enrollmentActive: true,
-          doneThisWeek: 2,
-          weeklyTarget: 3,
-        ),
-        StudentSummary(
-          id: '4',
-          name: 'Ana Beatriz Lima',
-          goal: FitnessGoal.health,
-          currentWorkout: 'Treino A',
-          lastAssessment: _daysAgo(90),
-          nextFollowUp: _inDays(1),
-          planName: 'Mensal',
-          enrollmentActive: false,
-          doneThisWeek: 0,
-          weeklyTarget: 3,
-        ),
-        StudentSummary(
-          id: '5',
-          name: 'Rafael Costa',
-          goal: FitnessGoal.hypertrophy,
-          currentWorkout: 'Treino B',
-          lastAssessment: _daysAgo(45),
-          nextFollowUp: _inDays(7),
-          planName: 'Semestral',
-          enrollmentActive: true,
-          doneThisWeek: 5,
-          weeklyTarget: 5,
-        ),
-      ],
-      plans: [
-        WorkoutPlan(
-          id: 'p1',
-          name: 'A',
-          focus: 'Peito e tríceps',
-          assignedStudents: ['Bernardo Almeida', 'Rafael Costa', 'Marina Souza'],
-          weeklyCompletion: 0.75,
-          exercises: [
-            Exercise(
-                name: 'Supino reto',
-                muscle: 'Peito',
-                sets: 4,
-                reps: '8-10',
-                load: '40 kg',
-                restSeconds: 90),
-            Exercise(
-                name: 'Tríceps na polia',
-                muscle: 'Tríceps',
-                sets: 3,
-                reps: '15',
-                load: '20 kg',
-                restSeconds: 45),
-          ],
-        ),
-        WorkoutPlan(
-          id: 'p2',
-          name: 'B',
-          focus: 'Costas e bíceps',
-          assignedStudents: ['Bernardo Almeida', 'Lucas Pereira'],
-          weeklyCompletion: 0.5,
-          notes: 'Atenção à postura na remada.',
-          exercises: [
-            Exercise(
-                name: 'Puxada frontal',
-                muscle: 'Costas',
-                sets: 4,
-                reps: '10',
-                load: '40 kg',
-                restSeconds: 90),
-            Exercise(
-                name: 'Rosca direta',
-                muscle: 'Bíceps',
-                sets: 3,
-                reps: '12',
-                load: '20 kg',
-                restSeconds: 60),
-          ],
-        ),
-      ],
-      appointments: [
-        Appointment(
-            id: 'a1',
-            day: 0,
-            time: '07:00',
-            student: 'Bernardo Almeida',
-            type: AppointmentType.personal),
-        Appointment(
-            id: 'a2',
-            day: 0,
-            time: '09:30',
-            student: 'Marina Souza',
-            type: AppointmentType.assessment),
-        Appointment(
-            id: 'a3',
-            day: 0,
-            time: '16:00',
-            student: 'Lucas Pereira',
-            type: AppointmentType.followUp),
-        Appointment(
-            id: 'a4',
-            day: 1,
-            time: '08:00',
-            student: 'Rafael Costa',
-            type: AppointmentType.personal),
-        Appointment(
-            id: 'a5',
-            day: 2,
-            time: '18:00',
-            student: 'Ana Beatriz Lima',
-            type: AppointmentType.assessment),
-        Appointment(
-            id: 'a6',
-            day: 3,
-            time: '07:30',
-            student: 'Bernardo Almeida',
-            type: AppointmentType.followUp),
-        Appointment(
-            id: 'a7',
-            day: 4,
-            time: '17:00',
-            student: 'Marina Souza',
-            type: AppointmentType.personal),
-        Appointment(
-            id: 'a8',
-            day: 5,
-            time: '09:00',
-            student: 'Lucas Pereira',
-            type: AppointmentType.personal),
-      ],
-      newStudents: ['Felipe Andrade', 'Juliana Rocha'],
-    );
-  }
 }
