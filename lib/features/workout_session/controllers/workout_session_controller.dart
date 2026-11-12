@@ -6,6 +6,7 @@ import '../../../models/profile_models.dart';
 import '../../../models/training_chart.dart';
 import '../../../services/training_chart_service.dart';
 import '../../../services/training_history_service.dart';
+import '../../../services/workout_schedule_service.dart';
 import '../../../services/workout_session_service.dart';
 
 /// Estado da tela de um treino: se está em andamento, o tempo decorrido, os
@@ -62,6 +63,10 @@ class WorkoutSessionController extends ChangeNotifier {
     }
     return null;
   }
+
+  /// Próximo treino programado desta planilha, pelo ciclo e pelo histórico.
+  NextWorkout? get nextWorkout =>
+      WorkoutScheduleService.nextWorkout(chart, _history.sessions);
 
   Duration get elapsed => isRunning ? _service.elapsed : Duration.zero;
 

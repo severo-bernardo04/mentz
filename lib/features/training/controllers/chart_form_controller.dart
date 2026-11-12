@@ -4,22 +4,60 @@ import 'package:mentz/models/profile_models.dart';
 import 'package:mentz/models/training_chart.dart';
 import 'package:mentz/services/training_chart_service.dart';
 
-/// Estado e regras do formulário de nova planilha (sem nada de interface).
+/// Estado e regras do formulário de planilha, para criar uma nova ou editar
+/// uma existente (sem nada de interface).
 class ChartFormController extends ChangeNotifier {
-  final nameCtrl = TextEditingController(text: 'Training Charts 7');
+  /// Planilha sendo editada; null ao criar uma nova.
+  final TrainingChart? editing;
 
-  /// Começa com 3 dias padrão (ABC).
-  final List<DayDraft> days = [
+  final TextEditingController nameCtrl;
+
+  /// Dias do ciclo. Uma planilha nova começa com 3 dias padrão (ABC).
+  final List<DayDraft> days;
+
+  /// 1 = Seg ... 7 = Dom.
+  final Set<int> selectedWeekdays;
+
+  WorkoutFrequencyType frequencyType;
+  bool loading = false;
+
+  /// Com [editing], o formulário começa preenchido com os dados da planilha.
+  ChartFormController({this.editing})
+    : nameCtrl = TextEditingController(
+        text: editing?.name ?? 'Training Charts 7',
+      ),
+      days = editing == null ? _defaultDays() : _daysOf(editing),
+      selectedWeekdays = _weekdaysOf(editing),
+      frequencyType =
+          editing?.frequencyConfig.type ?? WorkoutFrequencyType.fixedDays;
+
+  bool get isEditing => editing != null;
+
+  static List<DayDraft> _defaultDays() => [
     DayDraft(name: 'TREINO A', restDaysAfter: 1),
     DayDraft(name: 'TREINO B', restDaysAfter: 1),
     DayDraft(name: 'TREINO C', restDaysAfter: 2),
   ];
 
-  /// 1 = Seg ... 7 = Dom.
-  final Set<int> selectedWeekdays = {1, 3, 5};
+  /// Dias da planilha, na ordem do ciclo, com o descanso de cada um.
+  static List<DayDraft> _daysOf(TrainingChart chart) {
+    final sorted = [...chart.days]..sort((a, b) => a.order.compareTo(b.order));
+    final rest = chart.frequencyConfig.intervalRestDays;
 
-  WorkoutFrequencyType frequencyType = WorkoutFrequencyType.fixedDays;
-  bool loading = false;
+    return [
+      for (var i = 0; i < sorted.length; i++)
+        DayDraft.fromDay(
+          sorted[i],
+          restDaysAfter: i < rest.length ? rest[i] : 1,
+        ),
+    ];
+  }
+
+  /// Dias da semana marcados; o padrão vale para planilha nova ou de intervalo.
+  static Set<int> _weekdaysOf(TrainingChart? chart) {
+    final saved = chart?.frequencyConfig.fixedWeekdays ?? const <int>[];
+    return saved.isEmpty ? {1, 3, 5} : saved.toSet();
+  }
   String? errorMessage;
 
   bool _disposed = false;
@@ -120,16 +158,24 @@ class ChartFormController extends ChangeNotifier {
     return null;
   }
 
+  /// Monta a planilha a salvar. Na edição, mantém o identificador da
+  /// planilha e dos dias já existentes (o histórico e o ciclo dependem
+  /// deles), além da data de criação e da marcação de planilha atual.
   TrainingChart buildChart() {
     final stamp = DateTime.now().millisecondsSinceEpoch;
     final isFixed = frequencyType == WorkoutFrequencyType.fixedDays;
 
     return TrainingChart(
-      id: 'chart-$stamp',
+      id: editing?.id ?? 'chart-$stamp',
       name: nameCtrl.text.trim(),
+      description: editing?.description,
+      selectedAt: editing?.selectedAt,
       days: [
         for (var i = 0; i < days.length; i++)
-          days[i].toTrainingDay(id: 'day-$stamp-$i', order: i + 1),
+          days[i].toTrainingDay(
+            id: days[i].id ?? 'day-$stamp-$i',
+            order: i + 1,
+          ),
       ],
       frequencyConfig: WorkoutFrequencyConfig(
         type: frequencyType,
@@ -137,11 +183,11 @@ class ChartFormController extends ChangeNotifier {
         intervalRestDays:
             isFixed ? const [] : [for (final d in days) d.restDaysAfter],
       ),
-      createdAt: DateTime.now(),
+      createdAt: editing?.createdAt ?? DateTime.now(),
     );
   }
 
-  /// Valida as regras e salva. Retorna a planilha criada, ou null se falhou
+  /// Valida as regras e salva. Retorna a planilha salva, ou null se falhou
   /// (nesse caso veja [errorMessage]).
   Future<TrainingChart?> save(TrainingChartService service) async {
     errorMessage = validateRules();

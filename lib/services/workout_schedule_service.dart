@@ -84,15 +84,22 @@ abstract final class WorkoutScheduleService {
     final date = next.date;
     if (date == null) return next.day.name;
 
-    final today = _dateOnly(now ?? DateTime.now());
-    final when = date == today
-        ? 'hoje'
-        : date == _addDays(today, 1)
-        ? 'amanhã'
-        : '${weekdayShort[date.weekday - 1].toLowerCase()}, ${formatShort(date)}';
-
-    return '${next.day.name} • $when';
+    return '${next.day.name} • ${whenLabel(date, now: now)}';
   }
+
+  /// Data em relação a hoje: "hoje", "amanhã" ou "sex, 13/11".
+  static String whenLabel(DateTime date, {DateTime? now}) {
+    final today = _dateOnly(now ?? DateTime.now());
+    final day = _dateOnly(date);
+
+    if (day == today) return 'hoje';
+    if (day == _addDays(today, 1)) return 'amanhã';
+    return '${weekdayShort[day.weekday - 1].toLowerCase()}, ${formatShort(day)}';
+  }
+
+  /// Indica se [date] cai hoje.
+  static bool isToday(DateTime? date, {DateTime? now}) =>
+      date != null && _dateOnly(date) == _dateOnly(now ?? DateTime.now());
 
   static DateTime _dateOnly(DateTime d) => DateTime(d.year, d.month, d.day);
 

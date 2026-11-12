@@ -15,10 +15,13 @@ import 'package:mentz/widgets/error_banner.dart';
 import 'package:mentz/widgets/fade_slide_in.dart';
 import 'package:mentz/widgets/staggered_column.dart';
 
+/// Formulário de planilha. Sem [chart], cria uma nova; com [chart], edita a
+/// planilha informada, começando com os dados dela.
 class CreateTrainingChartPage extends StatefulWidget {
   final TrainingChartService? service;
+  final TrainingChart? chart;
 
-  const CreateTrainingChartPage({super.key, this.service});
+  const CreateTrainingChartPage({super.key, this.service, this.chart});
 
   @override
   State<CreateTrainingChartPage> createState() =>
@@ -27,7 +30,7 @@ class CreateTrainingChartPage extends StatefulWidget {
 
 class _CreateTrainingChartPageState extends State<CreateTrainingChartPage> {
   final _formKey = GlobalKey<FormState>();
-  final _form = ChartFormController();
+  late final _form = ChartFormController(editing: widget.chart);
 
   @override
   void dispose() {
@@ -43,7 +46,9 @@ class _CreateTrainingChartPageState extends State<CreateTrainingChartPage> {
     if (!mounted || chart == null) return;
 
     context.showSnack(
-      'Planilha "${chart.name}" criada com sucesso!',
+      _form.isEditing
+          ? 'Planilha "${chart.name}" atualizada.'
+          : 'Planilha "${chart.name}" criada com sucesso!',
       background: Colors.green.shade700,
     );
     Navigator.of(context).pop(chart);
@@ -87,7 +92,7 @@ class _CreateTrainingChartPageState extends State<CreateTrainingChartPage> {
   @override
   Widget build(BuildContext context) {
     return AppPageScaffold(
-      title: 'Nova Planilha',
+      title: _form.isEditing ? 'Editar Planilha' : 'Nova Planilha',
       child: Form(
         key: _formKey,
         child: ListenableBuilder(
@@ -140,7 +145,9 @@ class _CreateTrainingChartPageState extends State<CreateTrainingChartPage> {
                 FadeSlideIn(
                   delay: const Duration(milliseconds: 250),
                   child: AppButton(
-                    label: 'Criar Planilha',
+                    label: _form.isEditing
+                        ? 'Salvar Alterações'
+                        : 'Criar Planilha',
                     loading: _form.loading,
                     onPressed: _save,
                   ),

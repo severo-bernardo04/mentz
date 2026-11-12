@@ -32,6 +32,19 @@ class TrainingChartService extends ChangeNotifier {
   FirebaseFirestore get _db => _firestoreOverride ?? FirebaseFirestore.instance;
 
   List<TrainingChart> get charts => List.unmodifiable(_charts);
+
+  /// Planilha atual: a que o usuário escolheu por último no menu de
+  /// planilhas. Sem nenhuma escolha, vale a mais recente. É null se o
+  /// usuário não tem planilhas.
+  TrainingChart? get currentChart {
+    TrainingChart? selected;
+    for (final chart in _charts) {
+      final at = chart.selectedAt;
+      if (at == null) continue;
+      if (selected == null || at.isAfter(selected.selectedAt!)) selected = chart;
+    }
+    return selected ?? (_charts.isEmpty ? null : _charts.first);
+  }
   bool get loading => _loading;
   String? get errorMessage => _errorMessage;
 
@@ -112,6 +125,15 @@ class TrainingChartService extends ChangeNotifier {
     return _collection
         .doc(chart.id)
         .set(chart.toMap())
+        .timeout(_writeTimeout, onTimeout: () {});
+  }
+
+  /// Torna a planilha [id] a atual, registrando o momento da escolha.
+  /// Grava só esse campo, sem tocar no restante da planilha.
+  Future<void> selectChart(String id) {
+    return _collection
+        .doc(id)
+        .update({'selectedAt': Timestamp.fromDate(DateTime.now())})
         .timeout(_writeTimeout, onTimeout: () {});
   }
 

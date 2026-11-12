@@ -41,13 +41,13 @@ class _WorkoutTabState extends State<WorkoutTab> {
     });
   }
 
-  /// Próximo treino da planilha mais recente, até existir a planilha atual.
+  /// Próximo treino da planilha atual.
   String _nextWorkoutText() {
-    final charts = TrainingChartService().charts;
-    if (charts.isEmpty) return 'Nenhuma planilha criada';
+    final current = TrainingChartService().currentChart;
+    if (current == null) return 'Nenhuma planilha criada';
 
     final next = WorkoutScheduleService.nextWorkout(
-      charts.first,
+      current,
       TrainingHistoryService().sessions,
     );
     return next == null

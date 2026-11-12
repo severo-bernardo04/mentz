@@ -5,6 +5,7 @@ import '../../core/routes/fade_slide_route.dart';
 import '../../core/utils/snackbars.dart';
 import '../../models/profile_models.dart';
 import '../../models/training_chart.dart';
+import '../../services/workout_schedule_service.dart';
 import '../../widgets/app_button.dart';
 import '../../widgets/app_page_scaffold.dart';
 import '../../widgets/confirm_dialog.dart';
@@ -399,6 +400,11 @@ class _WorkoutSessionPageState extends State<WorkoutSessionPage>
                 ),
               ),
               const SizedBox(height: 14),
+              // Antes de iniciar, avisa para quando o treino está programado
+              if (!c.isRunning && c.nextWorkout != null) ...[
+                _ScheduleNotice(next: c.nextWorkout!, day: day),
+                const SizedBox(height: 12),
+              ],
               SessionTimerCard(elapsed: c.elapsed, startedAt: c.startedAt),
               const SizedBox(height: 16),
               if (completing != null) ...[
@@ -458,6 +464,57 @@ class _WorkoutSessionPageState extends State<WorkoutSessionPage>
           ),
         );
       },
+    );
+  }
+}
+
+/// Aviso da programação: a data deste treino, quando ele é o próximo do
+/// ciclo, ou qual é o próximo treino programado, quando é outro dia.
+class _ScheduleNotice extends StatelessWidget {
+  final NextWorkout next;
+  final TrainingDay day;
+
+  const _ScheduleNotice({required this.next, required this.day});
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final isThisDay = next.day.id == day.id;
+    final date = next.date;
+    final today = isThisDay && WorkoutScheduleService.isToday(date);
+
+    final text = !isThisDay
+        ? 'Próximo treino programado: ${WorkoutScheduleService.label(next)}'
+        : date == null
+        ? 'Este é o próximo treino da planilha'
+        : 'Programado para ${WorkoutScheduleService.whenLabel(date)}';
+
+    // Destaque maior quando o treino é para hoje
+    final background = today ? cs.tertiaryContainer : cs.surface.withAlpha(200);
+    final foreground = today ? cs.onTertiaryContainer : cs.onSurfaceVariant;
+
+    return Container(
+      key: const Key('schedule_notice'),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: background,
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.event_rounded, size: 18, color: foreground),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              text,
+              style: TextStyle(
+                color: foreground,
+                fontWeight: today ? FontWeight.w700 : FontWeight.w500,
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

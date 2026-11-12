@@ -50,6 +50,10 @@ class WorkoutSessionService extends ChangeNotifier {
   /// Treino em andamento, ou null se nenhum foi iniciado.
   ActiveWorkout? get active => _active;
 
+  /// Dia com treino em andamento na planilha [chartId], ou null.
+  String? runningDayIdIn(String chartId) =>
+      _active?.chartId == chartId ? _active!.dayId : null;
+
   /// Tempo decorrido desde o início, calculado pelo relógio a cada leitura.
   Duration get elapsed {
     final active = _active;
