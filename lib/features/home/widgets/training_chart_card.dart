@@ -2,11 +2,15 @@ import 'package:flutter/material.dart';
 
 import '../../../core/routes/fade_slide_route.dart';
 import '../../../core/utils/snackbars.dart';
+import '../../../models/profile_models.dart';
 import '../../../models/training_chart.dart';
+import '../../../services/muscle_analysis_service.dart';
 import '../../../services/workout_session_service.dart';
 import '../../../widgets/app_card.dart';
 import '../../../widgets/status_chip.dart';
 import '../../training/create_training_chart_page.dart';
+import '../../workout_session/widgets/muscle_score_list.dart';
+import '../../workout_session/widgets/set_count_summary.dart';
 import '../../workout_session/workout_session_page.dart';
 
 /// Cartão de uma planilha: nome, descrição, tipo de frequência e dias.
@@ -33,6 +37,12 @@ class TrainingChartCard extends StatelessWidget {
   /// Quando informado, mostra o botão de editar a planilha.
   final VoidCallback? onEdit;
 
+  /// Séries de cada tipo na planilha inteira; sem isso, a linha não aparece.
+  final Map<SetType, int>? setCounts;
+
+  /// Quando informado, mostra o botão da pontuação muscular da planilha.
+  final VoidCallback? onShowScores;
+
   const TrainingChartCard({
     super.key,
     required this.name,
@@ -45,6 +55,8 @@ class TrainingChartCard extends StatelessWidget {
     this.isCurrent = false,
     this.onSelect,
     this.onEdit,
+    this.setCounts,
+    this.onShowScores,
   });
 
   /// Monta o cartão a partir de [chart]: tocar em um dia abre o treino, e o
@@ -75,6 +87,12 @@ class TrainingChartCard extends StatelessWidget {
       nextDayIndex: nextIndex < 0 ? null : nextIndex,
       isCurrent: isCurrent,
       onSelect: onSelect,
+      setCounts: MuscleAnalysisService.chartSetCounts(chart),
+      onShowScores: () => showMuscleScoreSheet(
+        context,
+        title: '${chart.name}  •  soma de todos os treinos do ciclo',
+        scores: MuscleAnalysisService.chartScores(chart),
+      ),
       onEdit: () {
         // Editar com um treino rodando deixaria as séries já registradas
         // fora de sincronia com os exercícios da planilha
@@ -181,6 +199,24 @@ class TrainingChartCard extends StatelessWidget {
                   ),
               ],
             ),
+            if (setCounts != null) ...[
+              const SizedBox(height: 12),
+              SetCountSummary(counts: setCounts!, compact: true),
+            ],
+            if (onShowScores != null)
+              Align(
+                alignment: Alignment.centerLeft,
+                child: TextButton.icon(
+                  key: const Key('chart_muscle_score_button'),
+                  style: TextButton.styleFrom(
+                    padding: EdgeInsets.zero,
+                    visualDensity: VisualDensity.compact,
+                  ),
+                  onPressed: onShowScores,
+                  icon: const Icon(Icons.accessibility_new_rounded, size: 18),
+                  label: const Text('Pontuação muscular'),
+                ),
+              ),
             if (onSelect != null) ...[
               const SizedBox(height: 12),
               Align(

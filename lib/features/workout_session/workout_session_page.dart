@@ -5,6 +5,7 @@ import '../../core/routes/fade_slide_route.dart';
 import '../../core/utils/snackbars.dart';
 import '../../models/profile_models.dart';
 import '../../models/training_chart.dart';
+import '../../services/muscle_analysis_service.dart';
 import '../../services/workout_schedule_service.dart';
 import '../../widgets/app_button.dart';
 import '../../widgets/app_page_scaffold.dart';
@@ -14,9 +15,11 @@ import '../../widgets/error_banner.dart';
 import '../../widgets/section_card.dart';
 import '../training_history/workout_spreadsheet_page.dart';
 import 'controllers/workout_session_controller.dart';
+import 'widgets/muscle_score_list.dart';
 import 'widgets/pending_exercises_sheet.dart';
 import 'widgets/session_exercise_card.dart';
 import 'widgets/session_timer_card.dart';
+import 'widgets/set_count_summary.dart';
 
 /// Escolha ao iniciar quando um treino anterior ficou com pendentes.
 enum _PendingChoice { complete, startCurrent, ignoreAndStart }
@@ -455,11 +458,29 @@ class _WorkoutSessionPageState extends State<WorkoutSessionPage>
                   onPressed: _start,
                 ),
               const SizedBox(height: 20),
+              // Séries planejadas do dia, por tipo
+              if (day.exercises.isNotEmpty) ...[
+                SetCountSummary(
+                  key: const Key('day_set_counts'),
+                  counts: MuscleAnalysisService.daySetCounts(day),
+                  title: 'Séries do treino',
+                ),
+                const SizedBox(height: 16),
+              ],
               SectionCard(
                 title: completing == null ? 'Exercícios' : 'Exercícios pendentes',
                 icon: Icons.fitness_center_rounded,
                 child: _exerciseList(),
               ),
+              // Pontuação de cada grupamento neste treino
+              if (day.exercises.isNotEmpty)
+                SectionCard(
+                  title: 'Pontuação muscular',
+                  icon: Icons.accessibility_new_rounded,
+                  child: MuscleScoreList(
+                    scores: MuscleAnalysisService.dayScores(day),
+                  ),
+                ),
             ],
           ),
         );

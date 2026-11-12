@@ -9,6 +9,7 @@ import '../../widgets/section_card.dart';
 import '../../widgets/stat_tile.dart';
 import '../../widgets/status_chip.dart';
 import '../workout_session/widgets/pending_exercises_sheet.dart';
+import '../workout_session/widgets/set_count_summary.dart';
 import 'widgets/executed_exercise_card.dart';
 import 'workout_spreadsheet_page.dart';
 
@@ -141,7 +142,11 @@ class WorkoutSessionDetailPage extends StatelessWidget {
           const SizedBox(height: 10),
           FadeSlideIn(
             delay: const Duration(milliseconds: 130),
-            child: _SetsByTypeTile(session.setCountByType),
+            child: SetCountSummary(
+              counts: session.setCountByType,
+              title:
+                  'Séries totais: ${SetCountSummary.totalOf(session.setCountByType)}',
+            ),
           ),
           if (pending.isNotEmpty) ...[
             const SizedBox(height: 12),
@@ -241,68 +246,6 @@ class _CarriedPendingNote extends StatelessWidget {
               '${carried.exerciseNames.isEmpty ? '' : ': ${carried.exerciseNames.join(', ')}'}.',
               style: TextStyle(fontSize: 13, color: cs.onSecondaryContainer),
             ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-/// "Séries totais" separadas por tipo, cada uma com a cor do tipo.
-class _SetsByTypeTile extends StatelessWidget {
-  final Map<SetType, int> counts;
-
-  const _SetsByTypeTile(this.counts);
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final cs = theme.colorScheme;
-    final total = counts.values.fold(0, (sum, count) => sum + count);
-
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 14),
-      decoration: BoxDecoration(
-        color: cs.surfaceContainerHighest.withAlpha(110),
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Column(
-        children: [
-          Text(
-            'Séries totais: $total',
-            style: theme.textTheme.labelLarge?.copyWith(
-              fontWeight: FontWeight.w800,
-            ),
-          ),
-          const SizedBox(height: 10),
-          Row(
-            children: [
-              for (final type in SetType.values)
-                Expanded(
-                  child: Column(
-                    children: [
-                      Text(
-                        '${counts[type] ?? 0}',
-                        style: theme.textTheme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.w800,
-                          color: type.color,
-                        ),
-                      ),
-                      FittedBox(
-                        fit: BoxFit.scaleDown,
-                        child: Text(
-                          type.label,
-                          maxLines: 1,
-                          style: theme.textTheme.labelSmall?.copyWith(
-                            color: type.color,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-            ],
           ),
         ],
       ),
