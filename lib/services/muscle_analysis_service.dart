@@ -130,7 +130,12 @@ abstract final class MuscleAnalysisService {
   /// Pontuação de cada grupamento na planilha inteira (um ciclo completo),
   /// somando todos os dias. Cada contribuição guarda o dia de origem.
   static List<MuscleScore> chartScores(TrainingChart chart) =>
-      _scoresOf(chart.days, withDayName: true);
+      daysScores(chart.days);
+
+  /// Pontuação somada de vários dias, ainda sem uma planilha salva (usada
+  /// na prévia do formulário de planilha).
+  static List<MuscleScore> daysScores(Iterable<TrainingDay> days) =>
+      _scoresOf(days, withDayName: true);
 
   static List<MuscleScore> _scoresOf(
     Iterable<TrainingDay> days, {

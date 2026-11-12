@@ -7,6 +7,7 @@ import 'package:mentz/features/training/training_charts_page.dart';
 import 'package:mentz/models/profile_models.dart';
 import 'package:mentz/models/training_chart.dart';
 import 'package:mentz/services/exercise_catalog_service.dart';
+import 'package:mentz/services/muscle_analysis_service.dart';
 import 'package:mentz/services/training_chart_service.dart';
 import 'package:mentz/services/workout_session_service.dart';
 
@@ -146,6 +147,37 @@ void main() {
       expect(find.text('Editar Planilha'), findsOneWidget);
       expect(find.text('Hipertrofia'), findsOneWidget);
       expect(find.text('Salvar Alterações'), findsOneWidget);
+    });
+
+    testWidgets('o formulário mostra a pontuação do que está montado', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        MaterialApp(home: CreateTrainingChartPage(chart: chart)),
+      );
+      await tester.pumpAndSettle();
+
+      final button = find.byKey(const Key('form_muscle_score_button'));
+      await tester.ensureVisible(button);
+      await tester.tap(button);
+      await tester.pumpAndSettle();
+
+      // Supino (Peito) no primeiro dia e Remada (Costas) no segundo
+      expect(find.text('Prévia  •  soma de todos os treinos do ciclo'), findsOneWidget);
+      expect(find.byKey(const Key('muscle_score_Peito')), findsOneWidget);
+      expect(find.byKey(const Key('muscle_score_Costas')), findsOneWidget);
+    });
+
+    test('a prévia acompanha as mudanças ainda não salvas', () {
+      final form = ChartFormController(editing: chart);
+      addTearDown(form.dispose);
+      form.removeDay(1);
+
+      final groups = [
+        for (final s in MuscleAnalysisService.daysScores(form.previewDays)) s.group,
+      ];
+
+      expect(groups, ['Peito']);
     });
 
     testWidgets('com treino em andamento, a edição é bloqueada', (

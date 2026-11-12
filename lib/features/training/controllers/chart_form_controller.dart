@@ -129,6 +129,13 @@ class ChartFormController extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Dias como estão no formulário agora, para prévias (ex: a pontuação
+  /// muscular) antes de salvar.
+  List<TrainingDay> get previewDays => [
+    for (var i = 0; i < days.length; i++)
+      days[i].toTrainingDay(id: days[i].id ?? 'preview-$i', order: i + 1),
+  ];
+
   void clearError() {
     if (errorMessage == null) return;
     errorMessage = null;

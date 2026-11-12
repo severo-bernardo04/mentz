@@ -6,8 +6,10 @@ import 'package:mentz/features/training/widgets/chart_info_section.dart';
 import 'package:mentz/features/training/widgets/cycle_days_section.dart';
 import 'package:mentz/features/training/widgets/exercise_sheet.dart';
 import 'package:mentz/features/training/widgets/frequency_section.dart';
+import 'package:mentz/features/workout_session/widgets/muscle_score_list.dart';
 import 'package:mentz/models/profile_models.dart';
 import 'package:mentz/models/training_chart.dart';
+import 'package:mentz/services/muscle_analysis_service.dart';
 import 'package:mentz/services/training_chart_service.dart';
 import 'package:mentz/widgets/app_button.dart';
 import 'package:mentz/widgets/app_page_scaffold.dart';
@@ -69,6 +71,15 @@ class _CreateTrainingChartPageState extends State<CreateTrainingChartPage> {
     if (!mounted || result == null) return;
 
     _form.saveExercise(day, result, index: index);
+  }
+
+  /// Pontuação muscular da planilha como está no formulário, antes de salvar.
+  void _showScores() {
+    showMuscleScoreSheet(
+      context,
+      title: 'Prévia  •  soma de todos os treinos do ciclo',
+      scores: MuscleAnalysisService.daysScores(_form.previewDays),
+    );
   }
 
   void _addDay() {
@@ -140,6 +151,16 @@ class _CreateTrainingChartPageState extends State<CreateTrainingChartPage> {
                           padding: const EdgeInsets.only(bottom: 16),
                           child: ErrorBanner(error),
                         ),
+                ),
+                // Confere o equilíbrio entre os grupamentos enquanto monta
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: TextButton.icon(
+                    key: const Key('form_muscle_score_button'),
+                    onPressed: _showScores,
+                    icon: const Icon(Icons.accessibility_new_rounded, size: 18),
+                    label: const Text('Ver pontuação muscular'),
+                  ),
                 ),
                 const SizedBox(height: 8),
                 FadeSlideIn(
