@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../../../core/routes/fade_slide_route.dart';
 import '../../../models/training_chart.dart';
 import '../../../services/training_chart_service.dart';
 import '../../../services/workout_session_service.dart';
@@ -68,10 +67,10 @@ class TrainingChartList extends StatelessWidget {
                         : 'Intervalo',
                     dayNames: [for (final day in charts[i].days) day.name],
                     runningDayIndex: _runningDayIndex(charts[i]),
-                    onDayTap: (dayIndex) => context.pushFade(
-                      WorkoutSessionPage(
-                        chart: charts[i],
-                        day: charts[i].days[dayIndex],
+                    onDayTap: (dayIndex) => Navigator.of(context).push(
+                      WorkoutSessionPage.route(
+                        charts[i],
+                        charts[i].days[dayIndex],
                       ),
                     ),
                   ),

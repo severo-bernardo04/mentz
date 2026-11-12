@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 
 /// Transição de tela com fade + leve deslize.
-Route<T> fadeSlideRoute<T>(Widget page) {
+/// [settings] dá um nome à rota, para localizá-la depois na pilha.
+Route<T> fadeSlideRoute<T>(Widget page, {RouteSettings? settings}) {
   return PageRouteBuilder<T>(
+    settings: settings,
     transitionDuration: const Duration(milliseconds: 450),
     reverseTransitionDuration: const Duration(milliseconds: 350),
     pageBuilder: (context, animation, secondaryAnimation) => page,

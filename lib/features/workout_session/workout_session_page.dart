@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../core/routes/app_navigation.dart';
 import '../../core/routes/fade_slide_route.dart';
 import '../../core/utils/snackbars.dart';
 import '../../models/profile_models.dart';
@@ -30,15 +31,65 @@ class WorkoutSessionPage extends StatefulWidget {
 
   const WorkoutSessionPage({super.key, required this.chart, required this.day});
 
+  /// Rota desta tela, com nome único por planilha e dia. O nome permite ao
+  /// cronômetro flutuante voltar para a tela do treino em andamento.
+  static Route<void> route(TrainingChart chart, TrainingDay day) {
+    return fadeSlideRoute<void>(
+      WorkoutSessionPage(chart: chart, day: day),
+      settings: RouteSettings(name: workoutRouteName(chart.id, day.id)),
+    );
+  }
+
   @override
   State<WorkoutSessionPage> createState() => _WorkoutSessionPageState();
 }
 
-class _WorkoutSessionPageState extends State<WorkoutSessionPage> {
+class _WorkoutSessionPageState extends State<WorkoutSessionPage>
+    with RouteAware {
   late final _controller = WorkoutSessionController(
     chart: widget.chart,
     day: widget.day,
   );
+
+  late final _routeName = workoutRouteName(widget.chart.id, widget.day.id);
+
+  @override
+  void initState() {
+    super.initState();
+    openWorkoutRoutes.add(_routeName);
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Acompanha quando esta tela fica visível ou é coberta por outra
+    final route = ModalRoute.of(context);
+    if (route is PageRoute) appRouteObserver.subscribe(this, route);
+  }
+
+  /// Informa ao cronômetro flutuante se esta tela está no topo. É adiado
+  /// porque as rotas avisam durante a montagem das telas.
+  void _setVisible(bool visible) {
+    Future.microtask(() {
+      if (visible) {
+        visibleWorkoutRoute.value = _routeName;
+      } else if (visibleWorkoutRoute.value == _routeName) {
+        visibleWorkoutRoute.value = null;
+      }
+    });
+  }
+
+  @override
+  void didPush() => _setVisible(true);
+
+  @override
+  void didPopNext() => _setVisible(true);
+
+  @override
+  void didPushNext() => _setVisible(false);
+
+  @override
+  void didPop() => _setVisible(false);
 
   /// Uma chave por exercício exibido, para rolar até ele ao tocar em COMPLETAR.
   final _exerciseKeys = <int, GlobalKey>{};
@@ -47,6 +98,9 @@ class _WorkoutSessionPageState extends State<WorkoutSessionPage> {
 
   @override
   void dispose() {
+    appRouteObserver.unsubscribe(this);
+    openWorkoutRoutes.remove(_routeName);
+    _setVisible(false);
     _controller.dispose();
     super.dispose();
   }
@@ -142,7 +196,7 @@ class _WorkoutSessionPageState extends State<WorkoutSessionPage> {
       ),
     );
     Navigator.of(context).pushReplacement(
-      fadeSlideRoute<void>(WorkoutSessionPage(chart: widget.chart, day: day)),
+      WorkoutSessionPage.route(widget.chart, day),
     );
   }
 
