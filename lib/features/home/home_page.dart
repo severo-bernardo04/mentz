@@ -11,6 +11,7 @@ import '../training/create_training_chart_page.dart';
 import '../training/training_charts_page.dart';
 import '../training_history/training_history_page.dart';
 import 'widgets/home_app_bar.dart';
+import 'widgets/muscle_evolution_chart.dart';
 import 'widgets/section_header.dart';
 import 'widgets/shortcuts_grid.dart';
 import 'widgets/current_training_chart.dart';
@@ -106,6 +107,17 @@ class _HomePageState extends State<HomePage> {
                     ),
                     const SizedBox(height: 12),
                     const CurrentTrainingChart(),
+                    const SizedBox(height: 28),
+                    const FadeSlideIn(
+                      delay: Duration(milliseconds: 170),
+                      child: SectionHeader(title: 'Evolução'),
+                    ),
+                    const SizedBox(height: 12),
+                    // Evolução muscular da planilha atual
+                    const FadeSlideIn(
+                      delay: Duration(milliseconds: 190),
+                      child: MuscleEvolutionChart(),
+                    ),
                     const SizedBox(height: 20),
                     FadeSlideIn(
                       delay: const Duration(milliseconds: 180),
