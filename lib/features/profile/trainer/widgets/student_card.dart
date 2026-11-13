@@ -21,6 +21,22 @@ class StudentCard extends StatelessWidget {
     final cs = theme.colorScheme;
     final s = student;
 
+    final chips = <Widget>[
+      if (s.currentWorkout != null)
+        StatusChip(label: s.currentWorkout!, icon: Icons.fitness_center),
+      if (s.nextFollowUp != null)
+        StatusChip(
+          label: 'Próx.: ${formatShort(s.nextFollowUp!)}',
+          icon: Icons.event_outlined,
+        ),
+      if (s.needsReassessment)
+        const StatusChip(
+          label: 'Reavaliar',
+          icon: Icons.warning_amber_rounded,
+          color: Color(0xFFEF6C00),
+        ),
+    ];
+
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
@@ -50,7 +66,7 @@ class StudentCard extends StatelessWidget {
                     CircleAvatar(
                       backgroundColor: cs.primaryContainer,
                       child: Text(
-                        s.name[0].toUpperCase(),
+                        s.name.isEmpty ? '?' : s.name[0].toUpperCase(),
                         style: TextStyle(
                           color: cs.onPrimaryContainer,
                           fontWeight: FontWeight.w800,
@@ -71,7 +87,7 @@ class StudentCard extends StatelessWidget {
                             ),
                           ),
                           Text(
-                            s.goal.label,
+                            s.goal?.label ?? 'Objetivo não informado',
                             style: theme.textTheme.labelMedium?.copyWith(
                               color: cs.onSurfaceVariant,
                             ),
@@ -79,31 +95,15 @@ class StudentCard extends StatelessWidget {
                         ],
                       ),
                     ),
-                    if (showBilling) StatusChip.active(s.enrollmentActive),
+                    if (showBilling && s.enrollmentActive != null)
+                      StatusChip.active(s.enrollmentActive!),
                     const Icon(Icons.chevron_right),
                   ],
                 ),
-                const SizedBox(height: 12),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: [
-                    StatusChip(
-                      label: s.currentWorkout,
-                      icon: Icons.fitness_center,
-                    ),
-                    StatusChip(
-                      label: 'Próx.: ${formatShort(s.nextFollowUp)}',
-                      icon: Icons.event_outlined,
-                    ),
-                    if (s.needsReassessment)
-                      const StatusChip(
-                        label: 'Reavaliar',
-                        icon: Icons.warning_amber_rounded,
-                        color: Color(0xFFEF6C00),
-                      ),
-                  ],
-                ),
+                if (chips.isNotEmpty) ...[
+                  const SizedBox(height: 12),
+                  Wrap(spacing: 8, runSpacing: 8, children: chips),
+                ],
               ],
             ),
           ),

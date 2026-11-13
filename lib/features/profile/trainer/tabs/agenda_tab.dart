@@ -12,7 +12,7 @@ class AgendaTab extends StatefulWidget {
   final TrainerProfile trainer;
   final List<Appointment> appointments;
   final List<String> newStudents;
-  final VoidCallback onChanged;
+  final void Function(Appointment, AppointmentStatus) onStatusChange;
   final ValueChanged<String> onDismissNewStudent;
 
   const AgendaTab({
@@ -20,7 +20,7 @@ class AgendaTab extends StatefulWidget {
     required this.trainer,
     required this.appointments,
     required this.newStudents,
-    required this.onChanged,
+    required this.onStatusChange,
     required this.onDismissNewStudent,
   });
 
@@ -37,10 +37,9 @@ class _AgendaTabState extends State<AgendaTab> {
       ..sort((a, b) => a.time.compareTo(b.time));
   }
 
-  void _setStatus(Appointment a, AppointmentStatus s) {
-    setState(() => a.status = s);
-    widget.onChanged();
-  }
+  /// A mudança é gravada pelo chamador; a lista volta atualizada de fora.
+  void _setStatus(Appointment a, AppointmentStatus s) =>
+      widget.onStatusChange(a, s);
 
   @override
   Widget build(BuildContext context) {
@@ -50,7 +49,7 @@ class _AgendaTabState extends State<AgendaTab> {
         .where((a) => a.status == AppointmentStatus.missed)
         .toList();
     final reassess =
-        widget.trainer.students.where((s) => s.needsReassessment).toList();
+    widget.trainer.students.where((s) => s.needsReassessment).toList();
 
     return ProfileTabPage(
       children: [
@@ -117,22 +116,22 @@ class _AgendaTabState extends State<AgendaTab> {
           child: reassess.isEmpty
               ? const EmptyHint('Nenhuma reavaliação pendente.')
               : Column(
-                  children: [
-                    for (final s in reassess)
-                      ListTile(
-                        contentPadding: EdgeInsets.zero,
-                        dense: true,
-                        leading: const Icon(
-                          Icons.warning_amber_rounded,
-                          color: Color(0xFFEF6C00),
-                        ),
-                        title: Text(s.name),
-                        subtitle: Text(
-                          'Última avaliação: ${formatDate(s.lastAssessment)}',
-                        ),
-                      ),
-                  ],
+            children: [
+              for (final s in reassess)
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  dense: true,
+                  leading: const Icon(
+                    Icons.warning_amber_rounded,
+                    color: Color(0xFFEF6C00),
+                  ),
+                  title: Text(s.name),
+                  subtitle: Text(
+                    'Última avaliação: ${formatDate(s.lastAssessment!)}',
+                  ),
                 ),
+            ],
+          ),
         ),
         SectionCard(
           title: 'Registro de faltas',
@@ -140,24 +139,24 @@ class _AgendaTabState extends State<AgendaTab> {
           child: missed.isEmpty
               ? const EmptyHint('Nenhuma falta registrada.')
               : Column(
-                  children: [
-                    for (final a in missed)
-                      ListTile(
-                        contentPadding: EdgeInsets.zero,
-                        dense: true,
-                        leading: Icon(Icons.cancel_outlined, color: cs.error),
-                        title: Text(a.student),
-                        subtitle: Text(
-                          '${weekdayShort[a.day]} às ${a.time} • ${a.type.label}',
-                        ),
-                        trailing: TextButton(
-                          onPressed: () =>
-                              _setStatus(a, AppointmentStatus.scheduled),
-                          child: const Text('Desfazer'),
-                        ),
-                      ),
-                  ],
+            children: [
+              for (final a in missed)
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  dense: true,
+                  leading: Icon(Icons.cancel_outlined, color: cs.error),
+                  title: Text(a.student),
+                  subtitle: Text(
+                    '${weekdayShort[a.day]} às ${a.time} • ${a.type.label}',
+                  ),
+                  trailing: TextButton(
+                    onPressed: () =>
+                        _setStatus(a, AppointmentStatus.scheduled),
+                    child: const Text('Desfazer'),
+                  ),
                 ),
+            ],
+          ),
         ),
       ],
     );
