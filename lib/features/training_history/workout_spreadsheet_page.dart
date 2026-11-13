@@ -1,5 +1,8 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '../../core/utils/text_fit.dart';
+import '../../models/training_chart.dart';
+import '../../services/training_chart_service.dart';
 import '../../services/training_history_service.dart';
 import '../../widgets/app_background.dart';
 import '../../widgets/status_chip.dart';
@@ -10,52 +13,134 @@ import 'widgets/spreadsheet_data_table.dart';
 class WorkoutSpreadsheetPage extends StatefulWidget {
   final String? initialPlan;
   final TrainingHistoryService? service;
+  final TrainingChartService? chartService;
+  final TrainingChart? chart;
 
   const WorkoutSpreadsheetPage({
     super.key,
     this.initialPlan,
     this.service,
+    this.chartService,
+    this.chart,
   });
 
   @override
   State<WorkoutSpreadsheetPage> createState() => _WorkoutSpreadsheetPageState();
 }
 
+class _SpreadsheetTab {
+  final String label;
+  final String? chartId;
+  final String? dayId;
+  final String? chartName;
+
+  const _SpreadsheetTab({
+    required this.label,
+    this.chartId,
+    this.dayId,
+    this.chartName,
+  });
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is _SpreadsheetTab &&
+          label == other.label &&
+          chartId == other.chartId &&
+          dayId == other.dayId &&
+          chartName == other.chartName;
+
+  @override
+  int get hashCode => Object.hash(label, chartId, dayId, chartName);
+}
+
 class _WorkoutSpreadsheetPageState extends State<WorkoutSpreadsheetPage>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   late final TrainingHistoryService _service =
       widget.service ?? TrainingHistoryService();
-  late List<String> _plans;
-  late TabController _tabController;
+  late final TrainingChartService _chartService =
+      widget.chartService ?? TrainingChartService();
+  late List<_SpreadsheetTab> _tabs;
+  TabController? _tabController;
 
   @override
   void initState() {
     super.initState();
-    _initPlans();
+    if (widget.chart == null) {
+      _chartService.addListener(_onChartChanged);
+    }
+    _tabs = _buildTabs();
+    _tabController = _createTabController(initialIndex: _findInitialIndex(_tabs));
   }
 
-  void _initPlans() {
-    final available = _service.getAvailablePlans();
-    _plans = available.isEmpty ? ['A', 'B', 'C'] : available;
-
-    int initialIndex = 0;
-    if (widget.initialPlan != null) {
-      final idx = _plans.indexWhere(
-        (p) => p.toLowerCase() == widget.initialPlan!.toLowerCase(),
-      );
-      if (idx >= 0) initialIndex = idx;
+  List<_SpreadsheetTab> _buildTabs() {
+    final chart = widget.chart ?? _chartService.currentChart;
+    if (chart != null && chart.days.isNotEmpty) {
+      final days = List<TrainingDay>.from(chart.days)
+        ..sort((a, b) => a.order.compareTo(b.order));
+      return [
+        for (final day in days)
+          _SpreadsheetTab(
+            label: day.name,
+            chartId: chart.id,
+            dayId: day.id,
+            chartName: chart.name,
+          ),
+      ];
     }
 
-    _tabController = TabController(
-      length: _plans.length,
-      initialIndex: initialIndex,
+    final available = _service.getAvailablePlans();
+    final plans = available.isEmpty ? ['A', 'B', 'C'] : available;
+    return [for (final plan in plans) _SpreadsheetTab(label: plan)];
+  }
+
+  int _findInitialIndex(List<_SpreadsheetTab> tabs) {
+    if (widget.initialPlan != null) {
+      final idx = tabs.indexWhere(
+        (t) => t.label.toLowerCase() == widget.initialPlan!.toLowerCase(),
+      );
+      if (idx >= 0) return idx;
+    }
+    return 0;
+  }
+
+  TabController _createTabController({required int initialIndex}) {
+    return TabController(
+      length: _tabs.length,
+      initialIndex: initialIndex.clamp(0, _tabs.length - 1),
       vsync: this,
     );
   }
 
+  void _onChartChanged() {
+    final nextTabs = _buildTabs();
+    if (listEquals(nextTabs, _tabs)) return;
+
+    final previousLabel = _tabController != null && _tabController!.index < _tabs.length
+        ? _tabs[_tabController!.index].label
+        : widget.initialPlan;
+    final oldController = _tabController;
+
+    setState(() {
+      _tabs = nextTabs;
+      final restoredIdx = previousLabel == null
+          ? 0
+          : _tabs.indexWhere(
+              (t) => t.label.toLowerCase() == previousLabel.toLowerCase(),
+            );
+      _tabController = _createTabController(
+        initialIndex: restoredIdx >= 0 ? restoredIdx : 0,
+      );
+    });
+    oldController?.dispose();
+  }
+
   @override
   void dispose() {
-    _tabController.dispose();
+    if (widget.chart == null) {
+      _chartService.removeListener(_onChartChanged);
+    }
+    _tabController?.dispose();
     super.dispose();
   }
 
@@ -104,8 +189,8 @@ class _WorkoutSpreadsheetPageState extends State<WorkoutSpreadsheetPage>
                         // o arrasto lateral fica só para rolar a tabela, sem trocar de treino
                         physics: const NeverScrollableScrollPhysics(),
                         children: [
-                          for (final plan in _plans)
-                            _buildPlanSpreadsheet(plan),
+                          for (final tab in _tabs)
+                            _buildPlanSpreadsheet(tab),
                         ],
                       );
                     },
@@ -137,7 +222,8 @@ class _WorkoutSpreadsheetPageState extends State<WorkoutSpreadsheetPage>
   /// palavras, nunca menor que 11 ([fitFontSize]). Assim o conjunto fica
   /// homogêneo, sem uma aba com letra diferente das outras.
   Widget _buildPlanTabs(ColorScheme cs) {
-    final scrollable = _plans.length > _maxFixedTabs;
+    final scrollable = _tabs.length > _maxFixedTabs;
+    final labels = [for (final tab in _tabs) tab.label];
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -145,9 +231,9 @@ class _WorkoutSpreadsheetPageState extends State<WorkoutSpreadsheetPage>
         final barWidth = constraints.maxWidth - 32 - 8 - 2;
         final labelWidth = scrollable
             ? _scrollableLabelWidth
-            : barWidth / _plans.length - _tabHorizontalPadding * 2;
+            : barWidth / _tabs.length - _tabHorizontalPadding * 2;
         final fontSize = fitFontSize(
-          _plans,
+          labels,
           maxWidth: labelWidth,
           // Mede com o peso da aba selecionada, o mais largo
           style: const TextStyle(fontWeight: FontWeight.w800, height: 1.15),
@@ -182,13 +268,13 @@ class _WorkoutSpreadsheetPageState extends State<WorkoutSpreadsheetPage>
             labelStyle: const TextStyle(fontWeight: FontWeight.w800),
             unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w600),
             tabs: [
-              for (final plan in _plans)
+              for (final tab in _tabs)
                 Tab(
                   height: 48,
                   child: SizedBox(
                     width: scrollable ? _scrollableLabelWidth : null,
                     child: Text(
-                      plan,
+                      tab.label,
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       textAlign: TextAlign.center,
@@ -203,8 +289,13 @@ class _WorkoutSpreadsheetPageState extends State<WorkoutSpreadsheetPage>
     );
   }
 
-  Widget _buildPlanSpreadsheet(String plan) {
-    final sessions = _service.getSessionsForWorkout(plan);
+  Widget _buildPlanSpreadsheet(_SpreadsheetTab tab) {
+    final sessions = _service.getSessionsForWorkout(
+      tab.label,
+      chartId: tab.chartId,
+      dayId: tab.dayId,
+      chartName: tab.chartName,
+    );
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -216,7 +307,7 @@ class _WorkoutSpreadsheetPageState extends State<WorkoutSpreadsheetPage>
         Expanded(
           child: SpreadsheetDataTable(
             sessions: sessions,
-            dayName: plan,
+            dayName: tab.label,
           ),
         ),
       ],
