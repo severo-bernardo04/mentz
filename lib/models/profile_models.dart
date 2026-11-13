@@ -88,18 +88,18 @@ class PlannedSet {
     required this.maxReps,
     this.isDropSet = false,
   }) : assert(minReps > 0, 'A faixa deve começar em pelo menos 1 repetição.'),
-       assert(minReps <= maxReps, 'O mínimo não pode ser maior que o máximo.'),
-       assert(
-         !isDropSet || type != SetType.feeder,
-         'Drop set só pode acompanhar séries de Trabalho ou Aquecimento.',
-       );
+        assert(minReps <= maxReps, 'O mínimo não pode ser maior que o máximo.'),
+        assert(
+        !isDropSet || type != SetType.feeder,
+        'Drop set só pode acompanhar séries de Trabalho ou Aquecimento.',
+        );
 
   /// Cria [count] séries iguais, com a mesma faixa de repetições.
   static List<PlannedSet> repeat(
-    int count, {
-    required int minReps,
-    required int maxReps,
-  }) => List.filled(count, PlannedSet(minReps: minReps, maxReps: maxReps));
+      int count, {
+        required int minReps,
+        required int maxReps,
+      }) => List.filled(count, PlannedSet(minReps: minReps, maxReps: maxReps));
 
   /// Lê uma faixa digitada como "8-10". Séries de Reconhecimento também
   /// aceitam um valor único, como "2". Retorna null se o formato for inválido,
@@ -127,16 +127,16 @@ class PlannedSet {
       : '$minReps-$maxReps';
 
   Map<String, dynamic> toMap() => {
-        'type': type.name,
-        'minReps': minReps,
-        'maxReps': maxReps,
-        'isDropSet': isDropSet,
-      };
+    'type': type.name,
+    'minReps': minReps,
+    'maxReps': maxReps,
+    'isDropSet': isDropSet,
+  };
 
   factory PlannedSet.fromMap(Map<String, dynamic> map) {
     return PlannedSet(
       type: SetType.values.firstWhere(
-        (e) => e.name == map['type'],
+            (e) => e.name == map['type'],
         orElse: () => SetType.working,
       ),
       minReps: (map['minReps'] as num?)?.toInt() ?? 1,
@@ -193,7 +193,7 @@ class Exercise {
       nameEn: nameEn ?? this.nameEn,
       primaryMuscle: primaryMuscle ?? this.primaryMuscle,
       highActivationMuscles:
-          highActivationMuscles ?? this.highActivationMuscles,
+      highActivationMuscles ?? this.highActivationMuscles,
       secondaryMuscles: secondaryMuscles ?? this.secondaryMuscles,
       equipment: equipment ?? this.equipment,
       instructions: instructions ?? this.instructions,
@@ -201,16 +201,16 @@ class Exercise {
   }
 
   Map<String, dynamic> toMap() => {
-        'id': id,
-        'name': name,
-        'muscle': muscle,
-        'nameEn': nameEn,
-        'primaryMuscle': primaryMuscle,
-        'highActivationMuscles': highActivationMuscles,
-        'secondaryMuscles': secondaryMuscles,
-        'equipment': equipment,
-        'instructions': instructions,
-      };
+    'id': id,
+    'name': name,
+    'muscle': muscle,
+    'nameEn': nameEn,
+    'primaryMuscle': primaryMuscle,
+    'highActivationMuscles': highActivationMuscles,
+    'secondaryMuscles': secondaryMuscles,
+    'equipment': equipment,
+    'instructions': instructions,
+  };
 
   /// [id] é o identificador do documento no Firestore.
   factory Exercise.fromMap(String id, Map<String, dynamic> map) {
@@ -221,12 +221,12 @@ class Exercise {
       nameEn: map['nameEn'] as String?,
       primaryMuscle: map['primaryMuscle'] as String?,
       highActivationMuscles: (map['highActivationMuscles'] as List?)
-              ?.map((e) => e.toString())
-              .toList() ??
+          ?.map((e) => e.toString())
+          .toList() ??
           const [],
       secondaryMuscles: (map['secondaryMuscles'] as List?)
-              ?.map((e) => e.toString())
-              .toList() ??
+          ?.map((e) => e.toString())
+          .toList() ??
           const [],
       equipment: map['equipment'] as String?,
       instructions: map['instructions'] as String?,
@@ -307,9 +307,9 @@ class WorkoutExercise {
   /// Recupera os dados do exercício com [findExercise]. Se ele não existir
   /// mais no catálogo, mantém a série planejada com um nome provisório.
   factory WorkoutExercise.fromMap(
-    Map<String, dynamic> map, {
-    required ExerciseLookup findExercise,
-  }) {
+      Map<String, dynamic> map, {
+        required ExerciseLookup findExercise,
+      }) {
     final exerciseId = map['exerciseId'] as String? ?? '';
     final planned = (map['plannedSets'] as List?)
         ?.map((s) => PlannedSet.fromMap(Map<String, dynamic>.from(s as Map)))
@@ -345,6 +345,46 @@ class WorkoutPlan {
     this.weeklyCompletion = 0,
   })  : exercises = exercises ?? [],
         assignedStudents = assignedStudents ?? [];
+
+  /// Documento da ficha em `users/{trainerUid}/plans/{id}`. O id é o do
+  /// documento e não é repetido nos campos.
+  Map<String, dynamic> toMap() => {
+    'name': name,
+    'focus': focus,
+    'exercises': exercises.map((e) => e.toMap()).toList(),
+    'assignedStudents': assignedStudents,
+    'notes': notes,
+    'weeklyCompletion': weeklyCompletion,
+  };
+
+  /// [id] é o identificador do documento. Os exercícios são recuperados do
+  /// catálogo com [findExercise].
+  factory WorkoutPlan.fromMap(
+      String id,
+      Map<String, dynamic> map, {
+        required ExerciseLookup findExercise,
+      }) {
+    return WorkoutPlan(
+      id: id,
+      name: map['name'] as String? ?? '',
+      focus: map['focus'] as String? ?? '',
+      exercises: [
+        for (final e in (map['exercises'] as List?) ?? const [])
+          WorkoutExercise.fromMap(
+            Map<String, dynamic>.from(e as Map),
+            findExercise: findExercise,
+          ),
+      ],
+      assignedStudents: [
+        for (final s in (map['assignedStudents'] as List?) ?? const [])
+          s.toString(),
+      ],
+      notes: map['notes'] as String? ?? '',
+      weeklyCompletion: ((map['weeklyCompletion'] as num?)?.toDouble() ?? 0)
+          .clamp(0.0, 1.0)
+          .toDouble(),
+    );
+  }
 }
 
 /// Tipos de série, cada um com sua cor na interface.
@@ -402,14 +442,14 @@ class DropStage {
   final double reps;
 
   const DropStage({required this.loadKg, required this.reps})
-    : assert(
-        loadKg >= 0 && (loadKg * 2) % 1 == 0,
-        'A carga deve ser positiva e variar de 0,5 em 0,5.',
-      ),
-      assert(
+      : assert(
+  loadKg >= 0 && (loadKg * 2) % 1 == 0,
+  'A carga deve ser positiva e variar de 0,5 em 0,5.',
+  ),
+        assert(
         reps >= 0 && (reps * 2) % 1 == 0,
         'As repetições devem ser positivas e variar de 0,5 em 0,5.',
-      );
+        );
 
   Map<String, dynamic> toMap() => {'loadKg': loadKg, 'reps': reps};
 
@@ -460,17 +500,17 @@ class ExecutedSet {
     this.maxReps,
     this.bodyWeight = false,
   }) : assert(
-         loadKg >= 0 && (loadKg * 2) % 1 == 0,
-         'A carga deve ser positiva e variar de 0,5 em 0,5.',
-       ),
-       assert(
-         reps >= 0 && (reps * 2) % 1 == 0,
-         'As repetições devem ser positivas e variar de 0,5 em 0,5.',
-       ),
-       assert(
-         !isDropSet || type != SetType.feeder,
-         'Drop set só pode acompanhar séries de Trabalho ou Aquecimento.',
-       );
+  loadKg >= 0 && (loadKg * 2) % 1 == 0,
+  'A carga deve ser positiva e variar de 0,5 em 0,5.',
+  ),
+        assert(
+        reps >= 0 && (reps * 2) % 1 == 0,
+        'As repetições devem ser positivas e variar de 0,5 em 0,5.',
+        ),
+        assert(
+        !isDropSet || type != SetType.feeder,
+        'Drop set só pode acompanhar séries de Trabalho ou Aquecimento.',
+        );
 
   /// Carga com unidade, incluindo as etapas do drop set (ex: "40 kg / 30 kg").
   /// Séries com peso do corpo aparecem como "BW".
@@ -482,8 +522,8 @@ class ExecutedSet {
   /// Carga (ou BW) e repetições informadas, incluindo as etapas do drop set.
   bool get isFilled =>
       reps > 0 &&
-      (bodyWeight || loadKg > 0) &&
-      dropStages.every((stage) => stage.reps > 0 && stage.loadKg > 0);
+          (bodyWeight || loadKg > 0) &&
+          dropStages.every((stage) => stage.reps > 0 && stage.loadKg > 0);
 
   /// Repetições, incluindo as etapas do drop set (ex: "12 + 6").
   String get repsLabel => [
@@ -533,23 +573,23 @@ class ExecutedSet {
   }
 
   Map<String, dynamic> toMap() => {
-        'setNumber': setNumber,
-        'type': type.name,
-        'loadKg': loadKg,
-        'reps': reps,
-        'completed': completed,
-        'isDropSet': isDropSet,
-        'dropStages': dropStages.map((s) => s.toMap()).toList(),
-        if (minReps != null) 'minReps': minReps,
-        if (maxReps != null) 'maxReps': maxReps,
-        if (bodyWeight) 'bodyWeight': true,
-      };
+    'setNumber': setNumber,
+    'type': type.name,
+    'loadKg': loadKg,
+    'reps': reps,
+    'completed': completed,
+    'isDropSet': isDropSet,
+    'dropStages': dropStages.map((s) => s.toMap()).toList(),
+    if (minReps != null) 'minReps': minReps,
+    if (maxReps != null) 'maxReps': maxReps,
+    if (bodyWeight) 'bodyWeight': true,
+  };
 
   factory ExecutedSet.fromMap(Map<String, dynamic> map) {
     return ExecutedSet(
       setNumber: (map['setNumber'] as num?)?.toInt() ?? 1,
       type: SetType.values.firstWhere(
-        (e) => e.name == map['type'],
+            (e) => e.name == map['type'],
         orElse: () => SetType.working,
       ),
       loadKg: (map['loadKg'] as num?)?.toDouble() ?? 0,
@@ -557,9 +597,9 @@ class ExecutedSet {
       completed: map['completed'] as bool? ?? true,
       isDropSet: map['isDropSet'] as bool? ?? false,
       dropStages: (map['dropStages'] as List?)
-              ?.map((s) =>
-                  DropStage.fromMap(Map<String, dynamic>.from(s as Map)))
-              .toList() ??
+          ?.map((s) =>
+          DropStage.fromMap(Map<String, dynamic>.from(s as Map)))
+          .toList() ??
           const [],
       minReps: (map['minReps'] as num?)?.toInt(),
       maxReps: (map['maxReps'] as num?)?.toInt(),
@@ -641,13 +681,13 @@ class ExecutedExercise {
   }
 
   Map<String, dynamic> toMap() => {
-        if (exerciseId != null) 'exerciseId': exerciseId,
-        'name': name,
-        'muscle': muscle,
-        'sets': sets.map((s) => s.toMap()).toList(),
-        'completed': completed,
-        if (notes != null) 'notes': notes,
-      };
+    if (exerciseId != null) 'exerciseId': exerciseId,
+    'name': name,
+    'muscle': muscle,
+    'sets': sets.map((s) => s.toMap()).toList(),
+    'completed': completed,
+    if (notes != null) 'notes': notes,
+  };
 
   factory ExecutedExercise.fromMap(Map<String, dynamic> map) {
     return ExecutedExercise(
@@ -655,9 +695,9 @@ class ExecutedExercise {
       name: map['name'] as String? ?? '',
       muscle: map['muscle'] as String? ?? '',
       sets: (map['sets'] as List?)
-              ?.map((s) =>
-                  ExecutedSet.fromMap(Map<String, dynamic>.from(s as Map)))
-              .toList() ??
+          ?.map((s) =>
+          ExecutedSet.fromMap(Map<String, dynamic>.from(s as Map)))
+          .toList() ??
           const [],
       completed: map['completed'] as bool? ?? true,
       notes: map['notes'] as String?,
@@ -686,11 +726,11 @@ class CarriedPending {
   String get label => '$workoutName de ${formatShort(date)}';
 
   Map<String, dynamic> toMap() => {
-        'sessionId': sessionId,
-        'workoutName': workoutName,
-        'date': Timestamp.fromDate(date),
-        'exerciseNames': exerciseNames,
-      };
+    'sessionId': sessionId,
+    'workoutName': workoutName,
+    'date': Timestamp.fromDate(date),
+    'exerciseNames': exerciseNames,
+  };
 
   static CarriedPending? tryFromMap(Object? data) {
     if (data is! Map) return null;
@@ -703,8 +743,8 @@ class CarriedPending {
       workoutName: data['workoutName'] as String? ?? '',
       date: date.toDate(),
       exerciseNames: (data['exerciseNames'] as List?)
-              ?.map((e) => e.toString())
-              .toList() ??
+          ?.map((e) => e.toString())
+          .toList() ??
           const [],
     );
   }
@@ -735,19 +775,19 @@ class CompletedWorkout {
   final CarriedPending? carriedPending;
 
   const CompletedWorkout(
-    this.date,
-    this.plan,
-    this.minutes, {
-    this.id,
-    this.chartId,
-    this.dayId,
-    this.chartName,
-    this.workoutName,
-    this.executedExercises = const [],
-    this.completedAt,
-    this.pendingIgnored = false,
-    this.carriedPending,
-  });
+      this.date,
+      this.plan,
+      this.minutes, {
+        this.id,
+        this.chartId,
+        this.dayId,
+        this.chartName,
+        this.workoutName,
+        this.executedExercises = const [],
+        this.completedAt,
+        this.pendingIgnored = false,
+        this.carriedPending,
+      });
 
   /// Último dia em que o usuário treinou nesta sessão (feita ou completada).
   DateTime get lastActivity {
@@ -778,27 +818,27 @@ class CompletedWorkout {
 
   /// Posições dos exercícios não marcados como feitos.
   List<int> get pendingIndexes => [
-        for (var i = 0; i < executedExercises.length; i++)
-          if (!executedExercises[i].completed) i,
-      ];
+    for (var i = 0; i < executedExercises.length; i++)
+      if (!executedExercises[i].completed) i,
+  ];
 
   /// Ainda pode ser completado: incompleto, não ignorado e ligado a um dia
   /// de planilha (sessões antigas, sem planilha, não entram).
   bool get canBeCompleted =>
       isIncomplete &&
-      !pendingIgnored &&
-      id != null &&
-      chartId != null &&
-      dayId != null;
+          !pendingIgnored &&
+          id != null &&
+          chartId != null &&
+          dayId != null;
 
   /// Quantidade de séries de cada tipo.
   Map<SetType, int> get setCountByType => {
-        for (final type in SetType.values)
-          type: executedExercises.fold<int>(
-            0,
+    for (final type in SetType.values)
+      type: executedExercises.fold<int>(
+        0,
             (total, e) => total + e.sets.where((s) => s.type == type).length,
-          ),
-      };
+      ),
+  };
 
   String get weekdayName => weekdayFull[date.weekday - 1];
 
@@ -833,18 +873,18 @@ class CompletedWorkout {
   }
 
   Map<String, dynamic> toMap() => {
-        'date': Timestamp.fromDate(date),
-        'plan': plan,
-        'minutes': minutes,
-        if (chartId != null) 'chartId': chartId,
-        if (dayId != null) 'dayId': dayId,
-        if (chartName != null) 'chartName': chartName,
-        if (workoutName != null) 'workoutName': workoutName,
-        'executedExercises': executedExercises.map((e) => e.toMap()).toList(),
-        if (completedAt != null) 'completedAt': Timestamp.fromDate(completedAt!),
-        if (pendingIgnored) 'pendingIgnored': true,
-        if (carriedPending != null) 'carriedPending': carriedPending!.toMap(),
-      };
+    'date': Timestamp.fromDate(date),
+    'plan': plan,
+    'minutes': minutes,
+    if (chartId != null) 'chartId': chartId,
+    if (dayId != null) 'dayId': dayId,
+    if (chartName != null) 'chartName': chartName,
+    if (workoutName != null) 'workoutName': workoutName,
+    'executedExercises': executedExercises.map((e) => e.toMap()).toList(),
+    if (completedAt != null) 'completedAt': Timestamp.fromDate(completedAt!),
+    if (pendingIgnored) 'pendingIgnored': true,
+    if (carriedPending != null) 'carriedPending': carriedPending!.toMap(),
+  };
 
   /// [id] é o identificador do documento no Firestore.
   factory CompletedWorkout.fromMap(String id, Map<String, dynamic> map) {
@@ -858,9 +898,9 @@ class CompletedWorkout {
       chartName: map['chartName'] as String?,
       workoutName: map['workoutName'] as String?,
       executedExercises: (map['executedExercises'] as List?)
-              ?.map((e) =>
-                  ExecutedExercise.fromMap(Map<String, dynamic>.from(e as Map)))
-              .toList() ??
+          ?.map((e) =>
+          ExecutedExercise.fromMap(Map<String, dynamic>.from(e as Map)))
+          .toList() ??
           const [],
       completedAt: (map['completedAt'] as Timestamp?)?.toDate(),
       pendingIgnored: map['pendingIgnored'] as bool? ?? false,
@@ -956,33 +996,73 @@ enum TrainerRole {
   const TrainerRole(this.label);
 }
 
+/// Primeiro valor de [values] cujo `name` é [name]; null se não houver.
+T? _enumByName<T extends Enum>(List<T> values, Object? name) {
+  for (final v in values) {
+    if (v.name == name) return v;
+  }
+  return null;
+}
+
+/// Resumo de um aluno vinculado ao treinador, lido de `users/{studentUid}`.
+///
+/// Só nome e e-mail vêm da conta. O restante é opcional: aparece quando o
+/// documento do aluno tiver o campo e fica null caso contrário.
 class StudentSummary {
   final String id;
   final String name;
-  final FitnessGoal goal;
-  final String currentWorkout;
-  final DateTime lastAssessment;
-  final DateTime nextFollowUp;
-  final String planName;
-  final bool enrollmentActive;
-  final int doneThisWeek;
-  final int weeklyTarget;
+  final String email;
+  final String? phone;
+  final String? photoUrl;
+  final FitnessGoal? goal;
+  final String? currentWorkout;
+  final DateTime? lastAssessment;
+  final DateTime? nextFollowUp;
+  final String? planName;
+  final bool? enrollmentActive;
+  final int? doneThisWeek;
+  final int? weeklyTarget;
 
   const StudentSummary({
     required this.id,
     required this.name,
-    required this.goal,
-    required this.currentWorkout,
-    required this.lastAssessment,
-    required this.nextFollowUp,
-    required this.planName,
-    required this.enrollmentActive,
-    required this.doneThisWeek,
-    required this.weeklyTarget,
+    this.email = '',
+    this.phone,
+    this.photoUrl,
+    this.goal,
+    this.currentWorkout,
+    this.lastAssessment,
+    this.nextFollowUp,
+    this.planName,
+    this.enrollmentActive,
+    this.doneThisWeek,
+    this.weeklyTarget,
   });
 
-  bool get needsReassessment =>
-      DateTime.now().difference(lastAssessment).inDays > 60;
+  /// [id] é o uid do aluno e [map] o documento `users/{id}`.
+  factory StudentSummary.fromMap(String id, Map<String, dynamic> map) {
+    return StudentSummary(
+      id: id,
+      name: map['name'] as String? ?? '',
+      email: map['email'] as String? ?? '',
+      phone: map['phone'] as String?,
+      photoUrl: map['photoBase64'] as String?,
+      goal: _enumByName(FitnessGoal.values, map['goal']),
+      currentWorkout: map['currentWorkout'] as String?,
+      lastAssessment: (map['lastAssessmentAt'] as Timestamp?)?.toDate(),
+      nextFollowUp: (map['nextFollowUpAt'] as Timestamp?)?.toDate(),
+      planName: map['planName'] as String?,
+      enrollmentActive: map['enrollmentActive'] as bool?,
+      doneThisWeek: (map['doneThisWeek'] as num?)?.toInt(),
+      weeklyTarget: (map['weeklyTarget'] as num?)?.toInt(),
+    );
+  }
+
+  /// Sem avaliação registrada não há como saber, então não alerta.
+  bool get needsReassessment {
+    final last = lastAssessment;
+    return last != null && DateTime.now().difference(last).inDays > 60;
+  }
 }
 
 enum AppointmentType {
@@ -1013,6 +1093,29 @@ class Appointment {
     required this.type,
     this.status = AppointmentStatus.scheduled,
   });
+
+  /// Documento do compromisso em `users/{trainerUid}/appointments/{id}`.
+  Map<String, dynamic> toMap() => {
+    'day': day,
+    'time': time,
+    'student': student,
+    'type': type.name,
+    'status': status.name,
+  };
+
+  /// [id] é o identificador do documento.
+  factory Appointment.fromMap(String id, Map<String, dynamic> map) {
+    return Appointment(
+      id: id,
+      day: ((map['day'] as num?)?.toInt() ?? 0).clamp(0, 6),
+      time: map['time'] as String? ?? '',
+      student: map['student'] as String? ?? '',
+      type: _enumByName(AppointmentType.values, map['type']) ??
+          AppointmentType.followUp,
+      status: _enumByName(AppointmentStatus.values, map['status']) ??
+          AppointmentStatus.scheduled,
+    );
+  }
 }
 
 class TrainerProfile {
