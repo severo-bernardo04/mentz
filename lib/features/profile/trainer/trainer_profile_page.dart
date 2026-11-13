@@ -9,46 +9,64 @@ import 'package:mentz/features/profile/widgets/profile_header.dart';
 import 'package:mentz/features/profile/widgets/profile_scaffold.dart';
 import 'package:mentz/features/training/workout_editor_page.dart';
 import 'package:mentz/models/profile_models.dart';
+import 'package:mentz/services/trainer_service.dart';
 import 'package:mentz/widgets/status_chip.dart';
 import 'package:mentz/services/photo_service.dart';
 
 /// Perfil do treinador: dados profissionais + ferramentas de gestão.
-class TrainerProfilePage extends StatefulWidget {
+///
+/// Os dados chegam prontos em [trainer] (carregados pelo [TrainerService]) e
+/// as alterações feitas aqui são gravadas pelo mesmo serviço; a tela se
+/// atualiza quando o Firestore devolve o novo estado.
+class TrainerProfilePage extends StatelessWidget {
   final TrainerProfile trainer;
 
   const TrainerProfilePage({super.key, required this.trainer});
 
-  @override
-  State<TrainerProfilePage> createState() => _TrainerProfilePageState();
-}
-
-class _TrainerProfilePageState extends State<TrainerProfilePage> {
-  late final List<WorkoutPlan> _plans = [...widget.trainer.plans];
-  late final List<Appointment> _appointments = [...widget.trainer.appointments];
-  late final List<String> _newStudents = [...widget.trainer.newStudents];
-
-  Future<void> _openEditor([WorkoutPlan? plan]) async {
+  Future<void> _openEditor(BuildContext context, [WorkoutPlan? plan]) async {
     final result = await context.pushFade<WorkoutPlan>(
       WorkoutEditorPage(
         plan: plan,
-        studentNames: [for (final s in widget.trainer.students) s.name],
+        studentNames: [for (final s in trainer.students) s.name],
       ),
     );
-    if (!mounted || result == null) return;
+    if (!context.mounted || result == null) return;
 
-    setState(() {
-      final i = _plans.indexWhere((p) => p.id == result.id);
-      if (i >= 0) {
-        _plans[i] = result;
-      } else {
-        _plans.add(result);
-      }
-    });
+    await _persist(
+      context,
+          () => TrainerService().savePlan(result),
+      'Não foi possível salvar a ficha.',
+    );
+  }
+
+  /// Marca o aluno como visto, procurando-o pelo nome exibido no aviso.
+  Future<void> _dismissNewStudent(BuildContext context, String name) async {
+    final matches = trainer.students.where((s) => s.name == name);
+    if (matches.isEmpty) return;
+
+    await _persist(
+      context,
+          () => TrainerService().markStudentSeen(matches.first.id),
+      'Não foi possível atualizar o aviso.',
+    );
+  }
+
+  /// Executa uma gravação e avisa o treinador se ela falhar.
+  Future<void> _persist(
+      BuildContext context,
+      Future<void> Function() action,
+      String errorMessage,
+      ) async {
+    try {
+      await action();
+    } catch (_) {
+      if (context.mounted) context.showSnack(errorMessage);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    final t = widget.trainer;
+    final t = trainer;
 
     return ProfileScaffold(
       title: 'Meu perfil',
@@ -78,17 +96,25 @@ class _TrainerProfilePageState extends State<TrainerProfilePage> {
         ProfessionalTab(trainer: t),
         StudentsTab(trainer: t),
         PlansTab(
-          plans: _plans,
-          onCreate: () => _openEditor(),
-          onEdit: _openEditor,
-          onDelete: (p) => setState(() => _plans.remove(p)),
+          plans: t.plans,
+          onCreate: () => _openEditor(context),
+          onEdit: (p) => _openEditor(context, p),
+          onDelete: (p) => _persist(
+            context,
+                () => TrainerService().deletePlan(p.id),
+            'Não foi possível excluir a ficha.',
+          ),
         ),
         AgendaTab(
           trainer: t,
-          appointments: _appointments,
-          newStudents: _newStudents,
-          onChanged: () => setState(() {}),
-          onDismissNewStudent: (n) => setState(() => _newStudents.remove(n)),
+          appointments: t.appointments,
+          newStudents: t.newStudents,
+          onStatusChange: (a, status) => _persist(
+            context,
+                () => TrainerService().setAppointmentStatus(a.id, status),
+            'Não foi possível atualizar o compromisso.',
+          ),
+          onDismissNewStudent: (name) => _dismissNewStudent(context, name),
         ),
       ],
     );
