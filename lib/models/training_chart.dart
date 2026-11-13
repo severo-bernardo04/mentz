@@ -169,6 +169,11 @@ class TrainingChart {
   final WorkoutFrequencyConfig frequencyConfig;
   final DateTime createdAt;
 
+  /// Quando o usuário escolheu esta planilha como a atual; null se nunca
+  /// escolheu. A atual é a de escolha mais recente (veja
+  /// `TrainingChartService.currentChart`).
+  final DateTime? selectedAt;
+
   const TrainingChart({
     required this.id,
     required this.name,
@@ -176,6 +181,7 @@ class TrainingChart {
     required this.days,
     required this.frequencyConfig,
     required this.createdAt,
+    this.selectedAt,
   });
 
   TrainingChart copyWith({
@@ -185,6 +191,7 @@ class TrainingChart {
     List<TrainingDay>? days,
     WorkoutFrequencyConfig? frequencyConfig,
     DateTime? createdAt,
+    DateTime? selectedAt,
   }) {
     return TrainingChart(
       id: id ?? this.id,
@@ -193,6 +200,7 @@ class TrainingChart {
       days: days ?? this.days,
       frequencyConfig: frequencyConfig ?? this.frequencyConfig,
       createdAt: createdAt ?? this.createdAt,
+      selectedAt: selectedAt ?? this.selectedAt,
     );
   }
 
@@ -203,6 +211,7 @@ class TrainingChart {
       'days': days.map((d) => d.toMap()).toList(),
       'frequencyConfig': frequencyConfig.toMap(),
       'createdAt': Timestamp.fromDate(createdAt),
+      if (selectedAt != null) 'selectedAt': Timestamp.fromDate(selectedAt!),
     };
   }
 
@@ -230,6 +239,7 @@ class TrainingChart {
               Map<String, dynamic>.from(map['frequencyConfig'] as Map))
           : const WorkoutFrequencyConfig(type: WorkoutFrequencyType.fixedDays),
       createdAt: (map['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      selectedAt: (map['selectedAt'] as Timestamp?)?.toDate(),
     );
   }
 }

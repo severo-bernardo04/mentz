@@ -3,11 +3,18 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mentz/features/home/home_page.dart';
 import 'package:mentz/features/training_history/controllers/training_history_controller.dart';
 import 'package:mentz/features/training_history/training_history_page.dart';
+import 'package:mentz/features/training_history/widgets/executed_exercise_card.dart';
 import 'package:mentz/features/training_history/widgets/workout_session_card.dart';
 import 'package:mentz/features/training_history/workout_session_detail_page.dart';
 import 'package:mentz/features/training_history/workout_spreadsheet_page.dart';
 import 'package:mentz/models/profile_models.dart';
 import 'package:mentz/services/training_history_service.dart';
+
+/// Procura [text] só nos cards de exercício, fora do quadro "Séries totais".
+Finder inExerciseCards(String text) => find.descendant(
+      of: find.byType(ExecutedExerciseCard),
+      matching: find.text(text),
+    );
 
 void main() {
   late TrainingHistoryService service;
@@ -210,7 +217,7 @@ void main() {
       expect(find.text('Remada Curvada'), findsOneWidget);
       expect(find.text('Não concluído'), findsOneWidget);
       expect(find.text('Desconforto na pegada'), findsOneWidget);
-      expect(find.text('Aquecimento'), findsOneWidget);
+      expect(inExerciseCards('Aquecimento'), findsOneWidget);
 
       // Retorna para a tela de histórico
       await tester.tap(find.byTooltip('Voltar'));
@@ -263,7 +270,8 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Planilha de Execuções'), findsOneWidget);
-      expect(find.text('Treino A'), findsWidgets);
+      // A aba mostra só o nome dado ao treino
+      expect(find.text('A'), findsWidgets);
       expect(find.text('Exercício'), findsOneWidget);
       expect(find.text('Supino Reto'), findsOneWidget);
       expect(find.text('55 kg × 10'), findsOneWidget);
@@ -381,8 +389,8 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('Reconhecimento'), findsOneWidget);
-      expect(find.text('Trabalho'), findsOneWidget);
+      expect(inExerciseCards('Reconhecimento'), findsOneWidget);
+      expect(inExerciseCards('Trabalho'), findsOneWidget);
       expect(find.text(dropSetLabel), findsOneWidget);
     });
   });

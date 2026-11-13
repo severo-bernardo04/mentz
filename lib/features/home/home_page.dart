@@ -8,11 +8,13 @@ import '../profile/profile_page.dart';
 import '../settings/settings_page.dart';
 import '../exercises/exercises_catalog_page.dart';
 import '../training/create_training_chart_page.dart';
+import '../training/training_charts_page.dart';
 import '../training_history/training_history_page.dart';
 import 'widgets/home_app_bar.dart';
+import 'widgets/muscle_evolution_chart.dart';
 import 'widgets/section_header.dart';
 import 'widgets/shortcuts_grid.dart';
-import 'widgets/training_chart_list.dart';
+import 'widgets/current_training_chart.dart';
 import 'widgets/welcome_card.dart';
 import 'package:mentz/services/auth_service.dart';
 
@@ -39,6 +41,8 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   void _openNewChart() => context.pushFade(const CreateTrainingChartPage());
+
+  void _openCharts() => context.pushFade(const TrainingChartsPage());
 
   void _openHistory() => context.pushFade(const TrainingHistoryPage());
 
@@ -88,14 +92,32 @@ class _HomePageState extends State<HomePage> {
                       ),
                     ),
                     const SizedBox(height: 28),
-                    const FadeSlideIn(
-                      delay: Duration(milliseconds: 150),
+                    FadeSlideIn(
+                      delay: const Duration(milliseconds: 150),
                       child: SectionHeader(
-                        title: 'Planilhas de Treino',
+                        title: 'Planilha Atual',
+                        // Menu com todas as planilhas, onde se troca a atual
+                        trailing: TextButton.icon(
+                          key: const Key('home_all_charts_button'),
+                          onPressed: _openCharts,
+                          icon: const Icon(Icons.list_alt_rounded, size: 18),
+                          label: const Text('Todas'),
+                        ),
                       ),
                     ),
                     const SizedBox(height: 12),
-                    const TrainingChartList(),
+                    const CurrentTrainingChart(),
+                    const SizedBox(height: 28),
+                    const FadeSlideIn(
+                      delay: Duration(milliseconds: 170),
+                      child: SectionHeader(title: 'Evolução'),
+                    ),
+                    const SizedBox(height: 12),
+                    // Evolução muscular da planilha atual
+                    const FadeSlideIn(
+                      delay: Duration(milliseconds: 190),
+                      child: MuscleEvolutionChart(),
+                    ),
                     const SizedBox(height: 20),
                     FadeSlideIn(
                       delay: const Duration(milliseconds: 180),

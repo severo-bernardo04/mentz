@@ -13,25 +13,6 @@ class ExecutedExerciseCard extends StatelessWidget {
     required this.exercise,
   });
 
-  /// Etiqueta colorida usada para o tipo da série e para o drop set.
-  Widget _buildSetTag(String label, Color color) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-      decoration: BoxDecoration(
-        color: color.withAlpha(25),
-        borderRadius: BorderRadius.circular(6),
-      ),
-      child: Text(
-        label,
-        style: TextStyle(
-          fontSize: 10,
-          fontWeight: FontWeight.w700,
-          color: color,
-        ),
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -136,137 +117,138 @@ class ExecutedExerciseCard extends StatelessWidget {
           if (exercise.sets.isNotEmpty) ...[
             const SizedBox(height: 12),
             Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
               decoration: BoxDecoration(
                 color: cs.surfaceContainerHighest.withAlpha(80),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Column(
                 children: [
-                  Padding(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                    child: Row(
-                      children: [
-                        const SizedBox(
-                          width: 44,
-                          child: Text(
-                            'Série',
-                            style: TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                        ),
-                        const Expanded(
-                          child: Text(
-                            'Tipo',
-                            style: TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(
-                          width: 80,
-                          child: Text(
-                            'Carga',
-                            style: TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(
-                          width: 60,
-                          child: Text(
-                            'Reps',
-                            style: TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(
-                          width: 24,
-                          child: Center(
-                            child: Icon(Icons.check, size: 14),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const Divider(height: 1),
-                  for (final s in exercise.sets)
-                    Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 7,
-                      ),
-                      child: Row(
-                        children: [
-                          SizedBox(
-                            width: 44,
-                            child: Text(
-                              '#${s.setNumber}',
-                              style: const TextStyle(
-                                fontWeight: FontWeight.w600,
-                                fontSize: 12,
-                              ),
-                            ),
-                          ),
-                          // Tipo da série e, quando houver, o drop set que a acompanha
-                          Expanded(
-                            child: Wrap(
-                              spacing: 4,
-                              runSpacing: 4,
-                              children: [
-                                _buildSetTag(s.type.label, s.type.color),
-                                if (s.isDropSet)
-                                  _buildSetTag(dropSetLabel, dropSetColor),
-                              ],
-                            ),
-                          ),
-                          SizedBox(
-                            width: 80,
-                            child: Text(
-                              s.loadLabel,
-                              style: const TextStyle(
-                                fontWeight: FontWeight.w700,
-                                fontSize: 12,
-                              ),
-                            ),
-                          ),
-                          SizedBox(
-                            width: 60,
-                            child: Text(
-                              s.repsLabel,
-                              style: const TextStyle(
-                                fontWeight: FontWeight.w600,
-                                fontSize: 12,
-                              ),
-                            ),
-                          ),
-                          SizedBox(
-                            width: 24,
-                            child: Center(
-                              child: Icon(
-                                s.completed
-                                    ? Icons.check_circle
-                                    : Icons.cancel_outlined,
-                                size: 16,
-                                color: s.completed
-                                    ? Colors.green.shade600
-                                    : Colors.deepOrange,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
+                  for (var i = 0; i < exercise.sets.length; i++) ...[
+                    if (i > 0) const Divider(height: 1),
+                    _ExecutedSetRow(exercise.sets[i]),
+                  ],
                 ],
               ),
             ),
           ],
+        ],
+      ),
+    );
+  }
+}
+
+/// Uma série em duas linhas: número, tipo e situação em cima; faixa, carga e
+/// repetições embaixo. As repetições usam a cor do desempenho na faixa.
+class _ExecutedSetRow extends StatelessWidget {
+  final ExecutedSet set;
+
+  const _ExecutedSetRow(this.set);
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final done = set.completed;
+    final range = set.rangeLabel;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Text(
+                '#${set.setNumber}',
+                style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12),
+              ),
+              const SizedBox(width: 8),
+              // Tipo da série e, quando houver, o drop set que a acompanha
+              _SetTag(set.type.label, set.type.color),
+              if (set.isDropSet) ...[
+                const SizedBox(width: 4),
+                const _SetTag(dropSetLabel, dropSetColor),
+              ],
+              const Spacer(),
+              Icon(
+                done ? Icons.check_circle : Icons.cancel_outlined,
+                size: 16,
+                color: done ? Colors.green.shade600 : Colors.deepOrange,
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Wrap(
+            spacing: 14,
+            runSpacing: 4,
+            children: [
+              if (range != null) _Value('Faixa', range, color: cs.onSurfaceVariant),
+              _Value('Carga', done ? set.loadLabel : '—'),
+              _Value(
+                'Reps',
+                done ? set.repsLabel : '—',
+                color: set.performance?.color,
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Etiqueta colorida do tipo da série, sempre em uma linha.
+class _SetTag extends StatelessWidget {
+  final String label;
+  final Color color;
+
+  const _SetTag(this.label, this.color);
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(
+        color: color.withAlpha(25),
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Text(
+        label,
+        maxLines: 1,
+        softWrap: false,
+        style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: color),
+      ),
+    );
+  }
+}
+
+/// Par "rótulo valor" (ex: "Carga 40 kg").
+class _Value extends StatelessWidget {
+  final String label;
+  final String value;
+  final Color? color;
+
+  const _Value(this.label, this.value, {this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+
+    return Text.rich(
+      TextSpan(
+        children: [
+          TextSpan(
+            text: '$label ',
+            style: TextStyle(fontSize: 11, color: cs.onSurfaceVariant),
+          ),
+          TextSpan(
+            text: value,
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w700,
+              color: color,
+            ),
+          ),
         ],
       ),
     );

@@ -5,8 +5,11 @@ import 'package:mentz/features/profile/student/widgets/training_week_row.dart';
 import 'package:mentz/features/profile/widgets/profile_tab_page.dart';
 import 'package:mentz/features/training_history/training_history_page.dart';
 import 'package:mentz/features/training_history/workout_session_detail_page.dart';
+import 'package:mentz/features/workout_session/widgets/pending_exercises_sheet.dart';
 import 'package:mentz/models/profile_models.dart';
+import 'package:mentz/services/training_chart_service.dart';
 import 'package:mentz/services/training_history_service.dart';
+import 'package:mentz/services/workout_schedule_service.dart';
 import 'package:mentz/widgets/empty_hint.dart';
 import 'package:mentz/widgets/info_row.dart';
 import 'package:mentz/widgets/section_card.dart';
@@ -38,6 +41,20 @@ class _WorkoutTabState extends State<WorkoutTab> {
     });
   }
 
+  /// Próximo treino da planilha atual.
+  String _nextWorkoutText() {
+    final current = TrainingChartService().currentChart;
+    if (current == null) return 'Nenhuma planilha criada';
+
+    final next = WorkoutScheduleService.nextWorkout(
+      current,
+      TrainingHistoryService().sessions,
+    );
+    return next == null
+        ? notInformed
+        : WorkoutScheduleService.label(next);
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -52,10 +69,17 @@ class _WorkoutTabState extends State<WorkoutTab> {
           icon: Icons.event_outlined,
           child: Column(
             children: [
-              InfoRow(
-                icon: Icons.play_circle_outline,
-                label: 'Programado',
-                value: s.nextWorkoutLabel ?? notInformed,
+              // Recalcula sempre que as planilhas ou o histórico mudam
+              ListenableBuilder(
+                listenable: Listenable.merge([
+                  TrainingChartService(),
+                  TrainingHistoryService(),
+                ]),
+                builder: (context, _) => InfoRow(
+                  icon: Icons.play_circle_outline,
+                  label: 'Programado',
+                  value: _nextWorkoutText(),
+                ),
               ),
               InfoRow(
                 icon: Icons.support_agent_outlined,
@@ -137,25 +161,35 @@ class _WorkoutTabState extends State<WorkoutTab> {
                         onTap: () => context.pushFade(
                           WorkoutSessionDetailPage(session: h),
                         ),
-                        leading: CircleAvatar(
-                          radius: 18,
-                          backgroundColor: cs.primaryContainer,
-                          child: Text(
-                            h.plan,
-                            style: TextStyle(
-                              color: cs.onPrimaryContainer,
-                              fontWeight: FontWeight.w800,
+                        // Quantidade de exercícios do treino
+                        leading: Tooltip(
+                          message: 'Exercícios',
+                          child: CircleAvatar(
+                            radius: 18,
+                            backgroundColor: cs.primaryContainer,
+                            child: Text(
+                              '${h.executedExercises.length}',
+                              style: TextStyle(
+                                color: cs.onPrimaryContainer,
+                                fontWeight: FontWeight.w800,
+                              ),
                             ),
                           ),
                         ),
-                        title: Text('Treino ${h.plan}'),
+                        title: Text(h.workoutName ?? h.plan),
                         subtitle: Text(
                           '${formatDate(h.date)}  •  ${h.minutes} min',
                         ),
-                        trailing: Icon(
-                          Icons.check_circle,
-                          color: Colors.green.shade600,
-                        ),
+                        // Verde quando completo; laranja com pendentes
+                        trailing: h.isIncomplete
+                            ? const Icon(
+                                Icons.warning_amber_rounded,
+                                color: incompleteColor,
+                              )
+                            : Icon(
+                                Icons.check_circle,
+                                color: Colors.green.shade600,
+                              ),
                       ),
                     ),
                 ],

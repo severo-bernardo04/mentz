@@ -51,7 +51,7 @@ class WorkoutSessionCard extends StatelessWidget {
                       radius: 20,
                       backgroundColor: cs.primaryContainer,
                       child: Text(
-                        session.plan,
+                        session.shortLabel,
                         style: TextStyle(
                           color: cs.onPrimaryContainer,
                           fontWeight: FontWeight.w800,
@@ -116,6 +116,13 @@ class WorkoutSessionCard extends StatelessWidget {
                       StatusChip(
                         label: '$totalExercises exercícios',
                         icon: Icons.fitness_center_outlined,
+                      ),
+                    // Parte do tempo foi usada para pendentes de outro treino
+                    if (session.carriedPending != null)
+                      StatusChip(
+                        label: '+ pendentes de ${session.carriedPending!.label}',
+                        icon: Icons.playlist_add_check_rounded,
+                        color: cs.secondary,
                       ),
                     if (uncompletedCount > 0)
                       StatusChip(

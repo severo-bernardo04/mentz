@@ -6,8 +6,10 @@ import 'package:mentz/features/training/widgets/chart_info_section.dart';
 import 'package:mentz/features/training/widgets/cycle_days_section.dart';
 import 'package:mentz/features/training/widgets/exercise_sheet.dart';
 import 'package:mentz/features/training/widgets/frequency_section.dart';
+import 'package:mentz/features/workout_session/widgets/muscle_score_list.dart';
 import 'package:mentz/models/profile_models.dart';
 import 'package:mentz/models/training_chart.dart';
+import 'package:mentz/services/muscle_analysis_service.dart';
 import 'package:mentz/services/training_chart_service.dart';
 import 'package:mentz/widgets/app_button.dart';
 import 'package:mentz/widgets/app_page_scaffold.dart';
@@ -15,10 +17,13 @@ import 'package:mentz/widgets/error_banner.dart';
 import 'package:mentz/widgets/fade_slide_in.dart';
 import 'package:mentz/widgets/staggered_column.dart';
 
+/// Formulário de planilha. Sem [chart], cria uma nova; com [chart], edita a
+/// planilha informada, começando com os dados dela.
 class CreateTrainingChartPage extends StatefulWidget {
   final TrainingChartService? service;
+  final TrainingChart? chart;
 
-  const CreateTrainingChartPage({super.key, this.service});
+  const CreateTrainingChartPage({super.key, this.service, this.chart});
 
   @override
   State<CreateTrainingChartPage> createState() =>
@@ -27,7 +32,7 @@ class CreateTrainingChartPage extends StatefulWidget {
 
 class _CreateTrainingChartPageState extends State<CreateTrainingChartPage> {
   final _formKey = GlobalKey<FormState>();
-  final _form = ChartFormController();
+  late final _form = ChartFormController(editing: widget.chart);
 
   @override
   void dispose() {
@@ -43,7 +48,9 @@ class _CreateTrainingChartPageState extends State<CreateTrainingChartPage> {
     if (!mounted || chart == null) return;
 
     context.showSnack(
-      'Planilha "${chart.name}" criada com sucesso!',
+      _form.isEditing
+          ? 'Planilha "${chart.name}" atualizada.'
+          : 'Planilha "${chart.name}" criada com sucesso!',
       background: Colors.green.shade700,
     );
     Navigator.of(context).pop(chart);
@@ -64,6 +71,15 @@ class _CreateTrainingChartPageState extends State<CreateTrainingChartPage> {
     if (!mounted || result == null) return;
 
     _form.saveExercise(day, result, index: index);
+  }
+
+  /// Pontuação muscular da planilha como está no formulário, antes de salvar.
+  void _showScores() {
+    showMuscleScoreSheet(
+      context,
+      title: 'Prévia  •  soma de todos os treinos do ciclo',
+      scores: MuscleAnalysisService.daysScores(_form.previewDays),
+    );
   }
 
   void _addDay() {
@@ -87,7 +103,7 @@ class _CreateTrainingChartPageState extends State<CreateTrainingChartPage> {
   @override
   Widget build(BuildContext context) {
     return AppPageScaffold(
-      title: 'Nova Planilha',
+      title: _form.isEditing ? 'Editar Planilha' : 'Nova Planilha',
       child: Form(
         key: _formKey,
         child: ListenableBuilder(
@@ -136,11 +152,23 @@ class _CreateTrainingChartPageState extends State<CreateTrainingChartPage> {
                           child: ErrorBanner(error),
                         ),
                 ),
+                // Confere o equilíbrio entre os grupamentos enquanto monta
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: TextButton.icon(
+                    key: const Key('form_muscle_score_button'),
+                    onPressed: _showScores,
+                    icon: const Icon(Icons.accessibility_new_rounded, size: 18),
+                    label: const Text('Ver pontuação muscular'),
+                  ),
+                ),
                 const SizedBox(height: 8),
                 FadeSlideIn(
                   delay: const Duration(milliseconds: 250),
                   child: AppButton(
-                    label: 'Criar Planilha',
+                    label: _form.isEditing
+                        ? 'Salvar Alterações'
+                        : 'Criar Planilha',
                     loading: _form.loading,
                     onPressed: _save,
                   ),
