@@ -8,6 +8,7 @@ import 'package:mentz/features/training_history/widgets/workout_session_card.dar
 import 'package:mentz/features/training_history/workout_session_detail_page.dart';
 import 'package:mentz/features/training_history/workout_spreadsheet_page.dart';
 import 'package:mentz/models/profile_models.dart';
+import 'package:mentz/models/training_chart.dart';
 import 'package:mentz/services/training_history_service.dart';
 
 /// Procura [text] só nos cards de exercício, fora do quadro "Séries totais".
@@ -276,6 +277,153 @@ void main() {
       expect(find.text('Supino Reto'), findsOneWidget);
       expect(find.text('55 kg × 10'), findsOneWidget);
     });
+
+    testWidgets(
+      'gera abas pelos dias do ciclo (inclusive sem execução) e filtra sessões pela planilha',
+      (tester) async {
+        tester.view.physicalSize = const Size(1200, 2400);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(tester.view.resetPhysicalSize);
+        addTearDown(tester.view.resetDevicePixelRatio);
+
+        final chart = TrainingChart(
+          id: 'chart-1',
+          name: 'Hipertrofia',
+          createdAt: DateTime(2026, 10, 1),
+          frequencyConfig: const WorkoutFrequencyConfig(
+            type: WorkoutFrequencyType.fixedDays,
+            fixedWeekdays: [1, 3, 5],
+          ),
+          days: const [
+            TrainingDay(id: 'day-b', name: 'Costas', order: 1),
+            TrainingDay(id: 'day-a', name: 'Peito', order: 0),
+          ],
+        );
+
+        service.setSessionsForTest([
+          // Sessão da planilha atual no dia Peito
+          CompletedWorkout(
+            DateTime(2026, 10, 15),
+            'Peito',
+            60,
+            chartId: 'chart-1',
+            dayId: 'day-a',
+            chartName: 'Hipertrofia',
+            executedExercises: const [
+              ExecutedExercise(
+                name: 'Supino Reto',
+                sets: [ExecutedSet(setNumber: 1, loadKg: 70, reps: 8)],
+              ),
+            ],
+          ),
+          // Sessão de OUTRA planilha com o mesmo nome de dia (não deve aparecer)
+          CompletedWorkout(
+            DateTime(2026, 10, 10),
+            'Peito',
+            50,
+            chartId: 'chart-2',
+            dayId: 'other-day',
+            chartName: 'Outra Planilha',
+            executedExercises: const [
+              ExecutedExercise(
+                name: 'Crucifixo Máquina',
+                sets: [ExecutedSet(setNumber: 1, loadKg: 40, reps: 12)],
+              ),
+            ],
+          ),
+        ]);
+
+        await tester.pumpWidget(
+          createTestApp(
+            WorkoutSpreadsheetPage(service: service, chart: chart),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        // As duas abas do ciclo aparecem na ordem (Peito, Costas), mesmo Costas sem execução
+        final tabTexts = tester
+            .widgetList<Text>(
+              find.descendant(of: find.byType(Tab), matching: find.byType(Text)),
+            )
+            .map((t) => t.data)
+            .toList();
+        expect(tabTexts, ['Peito', 'Costas']);
+
+        // Na aba Peito, aparece apenas a sessão da planilha atual
+        expect(find.text('Supino Reto'), findsOneWidget);
+        expect(find.text('Crucifixo Máquina'), findsNothing);
+
+        // Ao trocar para Costas (sem execução), exibe estado vazio desse dia
+        await tester.tap(find.descendant(
+          of: find.byType(Tab),
+          matching: find.text('Costas'),
+        ));
+        await tester.pumpAndSettle();
+
+        expect(
+          find.text('Nenhuma execução registrada para o Costas.'),
+          findsOneWidget,
+        );
+      },
+    );
+
+    testWidgets(
+      'mostra "Arraste para ver mais datas" só quando a tabela for mais larga que a tela',
+      (tester) async {
+        // Caso 1: poucas datas em tela larga -> cabe na tela, sem aviso
+        tester.view.physicalSize = const Size(1200, 2400);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(tester.view.resetPhysicalSize);
+        addTearDown(tester.view.resetDevicePixelRatio);
+
+        service.setSessionsForTest([
+          CompletedWorkout(
+            DateTime(2026, 10, 15),
+            'A',
+            60,
+            executedExercises: const [
+              ExecutedExercise(
+                name: 'Supino Reto',
+                sets: [ExecutedSet(setNumber: 1, loadKg: 55, reps: 10)],
+              ),
+            ],
+          ),
+        ]);
+
+        await tester.pumpWidget(
+          createTestApp(WorkoutSpreadsheetPage(service: service, initialPlan: 'A')),
+        );
+        await tester.pumpAndSettle();
+
+        expect(find.text('1 execução'), findsOneWidget);
+        expect(find.text('Arraste para ver mais datas'), findsNothing);
+
+        // Caso 2: várias datas em tela estreita -> tabela mais larga que a tela, exibe aviso
+        tester.view.physicalSize = const Size(360, 800);
+        service.setSessionsForTest([
+          for (var i = 1; i <= 6; i++)
+            CompletedWorkout(
+              DateTime(2026, 10, i),
+              'A',
+              60,
+              executedExercises: const [
+                ExecutedExercise(
+                  name: 'Supino Reto',
+                  sets: [ExecutedSet(setNumber: 1, loadKg: 55, reps: 10)],
+                ),
+              ],
+            ),
+        ]);
+
+        await tester.pumpWidget(
+          createTestApp(WorkoutSpreadsheetPage(service: service, initialPlan: 'A')),
+        );
+        await tester.pumpAndSettle();
+
+        expect(find.text('6 execuções'), findsOneWidget);
+        expect(find.text('Arraste para ver mais datas'), findsOneWidget);
+      },
+    );
 
     testWidgets('navegação para o Histórico a partir do grid de atalhos da HomePage',
         (tester) async {
