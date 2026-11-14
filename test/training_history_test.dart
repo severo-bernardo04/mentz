@@ -367,6 +367,64 @@ void main() {
       },
     );
 
+    testWidgets(
+      'mostra "Arraste para ver mais datas" só quando a tabela for mais larga que a tela',
+      (tester) async {
+        // Caso 1: poucas datas em tela larga -> cabe na tela, sem aviso
+        tester.view.physicalSize = const Size(1200, 2400);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(tester.view.resetPhysicalSize);
+        addTearDown(tester.view.resetDevicePixelRatio);
+
+        service.setSessionsForTest([
+          CompletedWorkout(
+            DateTime(2026, 10, 15),
+            'A',
+            60,
+            executedExercises: const [
+              ExecutedExercise(
+                name: 'Supino Reto',
+                sets: [ExecutedSet(setNumber: 1, loadKg: 55, reps: 10)],
+              ),
+            ],
+          ),
+        ]);
+
+        await tester.pumpWidget(
+          createTestApp(WorkoutSpreadsheetPage(service: service, initialPlan: 'A')),
+        );
+        await tester.pumpAndSettle();
+
+        expect(find.text('1 execução'), findsOneWidget);
+        expect(find.text('Arraste para ver mais datas'), findsNothing);
+
+        // Caso 2: várias datas em tela estreita -> tabela mais larga que a tela, exibe aviso
+        tester.view.physicalSize = const Size(360, 800);
+        service.setSessionsForTest([
+          for (var i = 1; i <= 6; i++)
+            CompletedWorkout(
+              DateTime(2026, 10, i),
+              'A',
+              60,
+              executedExercises: const [
+                ExecutedExercise(
+                  name: 'Supino Reto',
+                  sets: [ExecutedSet(setNumber: 1, loadKg: 55, reps: 10)],
+                ),
+              ],
+            ),
+        ]);
+
+        await tester.pumpWidget(
+          createTestApp(WorkoutSpreadsheetPage(service: service, initialPlan: 'A')),
+        );
+        await tester.pumpAndSettle();
+
+        expect(find.text('6 execuções'), findsOneWidget);
+        expect(find.text('Arraste para ver mais datas'), findsOneWidget);
+      },
+    );
+
     testWidgets('navegação para o Histórico a partir do grid de atalhos da HomePage',
         (tester) async {
       tester.view.physicalSize = const Size(1080, 2400);

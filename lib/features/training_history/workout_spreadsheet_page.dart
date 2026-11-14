@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '../../core/utils/text_fit.dart';
+import '../../models/profile_models.dart';
 import '../../models/training_chart.dart';
 import '../../services/training_chart_service.dart';
 import '../../services/training_history_service.dart';
@@ -296,18 +297,63 @@ class _WorkoutSpreadsheetPageState extends State<WorkoutSpreadsheetPage>
       dayId: tab.dayId,
       chartName: tab.chartName,
     );
+    return _PlanSpreadsheetView(
+      sessions: sessions,
+      dayName: tab.label,
+    );
+  }
+}
+
+class _PlanSpreadsheetView extends StatefulWidget {
+  final List<CompletedWorkout> sessions;
+  final String dayName;
+
+  const _PlanSpreadsheetView({
+    required this.sessions,
+    required this.dayName,
+  });
+
+  @override
+  State<_PlanSpreadsheetView> createState() => _PlanSpreadsheetViewState();
+}
+
+class _PlanSpreadsheetViewState extends State<_PlanSpreadsheetView> {
+  bool _showDragHint = false;
+
+  @override
+  void didUpdateWidget(covariant _PlanSpreadsheetView oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.sessions.isEmpty && _showDragHint) {
+      _showDragHint = false;
+    }
+  }
+
+  bool _onScrollMetrics(ScrollMetricsNotification notification) {
+    if (notification.metrics.axis != Axis.horizontal) return false;
+    final canScroll = notification.metrics.maxScrollExtent > 0.5;
+    if (canScroll != _showDragHint) {
+      setState(() => _showDragHint = canScroll);
+    }
+    return false;
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         // Barra compacta só aparece quando há dados na tabela
-        if (sessions.isNotEmpty) ...[
-          _buildInfoBar(sessions.length),
+        if (widget.sessions.isNotEmpty) ...[
+          _buildInfoBar(widget.sessions.length),
           const SizedBox(height: 12),
         ],
         Expanded(
-          child: SpreadsheetDataTable(
-            sessions: sessions,
-            dayName: tab.label,
+          child: NotificationListener<ScrollMetricsNotification>(
+            onNotification: _onScrollMetrics,
+            child: SpreadsheetDataTable(
+              sessions: widget.sessions,
+              dayName: widget.dayName,
+            ),
           ),
         ),
       ],
@@ -315,21 +361,25 @@ class _WorkoutSpreadsheetPageState extends State<WorkoutSpreadsheetPage>
   }
 
   /// Barra compacta acima da tabela: dica de rolagem horizontal à esquerda
-  /// e a quantidade de execuções em um StatusChip (widget compartilhado do projeto).
+  /// (somente quando a tabela ultrapassa a largura da tela) e a quantidade de
+  /// execuções em um StatusChip (widget compartilhado do projeto).
   Widget _buildInfoBar(int sessionCount) {
     final cs = Theme.of(context).colorScheme;
 
     return Row(
       children: [
-        Icon(Icons.swipe_outlined, size: 20, color: cs.onSurfaceVariant),
-        const SizedBox(width: 6),
-        // Expanded evita overflow do texto em telas estreitas
-        Expanded(
-          child: Text(
-            'Arraste para ver mais datas',
-            style: TextStyle(fontSize: 15, color: cs.onSurfaceVariant),
+        if (_showDragHint) ...[
+          Icon(Icons.swipe_outlined, size: 20, color: cs.onSurfaceVariant),
+          const SizedBox(width: 6),
+          // Expanded evita overflow do texto em telas estreitas
+          Expanded(
+            child: Text(
+              'Arraste para ver mais datas',
+              style: TextStyle(fontSize: 15, color: cs.onSurfaceVariant),
+            ),
           ),
-        ),
+        ] else
+          const Spacer(),
         StatusChip(
           icon: Icons.event_available_outlined,
           label: sessionCount == 1 ? '1 execução' : '$sessionCount execuções',
