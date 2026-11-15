@@ -155,15 +155,34 @@ class TrainingHistoryService extends ChangeNotifier {
   }
 
   /// Retorna as sessões associadas a um plano/dia específico (ex: 'A', 'B', 'C').
-  List<CompletedWorkout> getSessionsForWorkout(String plan, {String? chartName}) {
+  /// Quando [chartId] é informado, filtra apenas sessões daquela planilha.
+  List<CompletedWorkout> getSessionsForWorkout(
+    String plan, {
+    String? chartId,
+    String? dayId,
+    String? chartName,
+  }) {
     return sessions.where((s) {
-      final matchesPlan =
-          s.plan.trim().toLowerCase() == plan.trim().toLowerCase();
-      if (chartName != null && chartName.isNotEmpty) {
-        return matchesPlan &&
-            (s.chartName?.toLowerCase() == chartName.toLowerCase());
+      if (chartId != null && chartId.isNotEmpty) {
+        if (s.chartId != null) {
+          if (s.chartId != chartId) return false;
+        } else if (chartName != null && chartName.isNotEmpty) {
+          if (s.chartName?.toLowerCase() != chartName.toLowerCase()) {
+            return false;
+          }
+        } else {
+          return false;
+        }
+      } else if (chartName != null && chartName.isNotEmpty) {
+        if (s.chartName?.toLowerCase() != chartName.toLowerCase()) {
+          return false;
+        }
       }
-      return matchesPlan;
+
+      if (dayId != null && dayId.isNotEmpty && s.dayId != null) {
+        return s.dayId == dayId;
+      }
+      return s.plan.trim().toLowerCase() == plan.trim().toLowerCase();
     }).toList();
   }
 

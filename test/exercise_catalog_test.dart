@@ -141,7 +141,7 @@ void main() {
   });
 
   group('ExercisesCatalogPage & Detail Widget Tests', () {
-    testWidgets('exibe catálogo com nomes PT/EN, grupos musculares e abre demonstração',
+    testWidgets('exibe catálogo simplificado (nome e músculo principal) e abre demonstração',
         (tester) async {
       tester.view.physicalSize = const Size(1080, 2400);
       tester.view.devicePixelRatio = 1.0;
@@ -163,18 +163,21 @@ void main() {
       await tester.pumpWidget(createTestApp(ExercisesCatalogPage(service: service)));
       await tester.pumpAndSettle();
 
-      // Verifica exibição dos nomes e do card
+      // Verifica exibição simplificada: apenas nome e músculo principal na listagem
       expect(find.text('Supino reto'), findsOneWidget);
-      expect(find.text('Barbell Flat Bench Press'), findsOneWidget);
-      expect(find.text('Principal: Peitoral maior'), findsOneWidget);
-      expect(find.text('Alta: Tríceps'), findsOneWidget);
+      expect(find.text('Peitoral maior'), findsOneWidget);
+      expect(find.text('Barbell Flat Bench Press'), findsNothing);
+      expect(find.text('Alta: Tríceps'), findsNothing);
+      expect(find.text('Secundário: Core'), findsNothing);
+      expect(find.text('Ver Demonstração Anatômica'), findsNothing);
+      expect(find.byType(MuscleAnatomyView), findsNothing);
       expect(find.byType(ExerciseCatalogCard), findsOneWidget);
 
-      // Clica para abrir demonstração anatômica
-      await tester.tap(find.text('Ver Demonstração Anatômica'));
+      // Toca no card para abrir demonstração anatômica
+      await tester.tap(find.byType(ExerciseCatalogCard));
       await tester.pumpAndSettle();
 
-      // Confirma que abriu a tela de detalhes
+      // Confirma que abriu a tela de detalhes com o boneco anatômico
       expect(find.byType(ExerciseDetailPage), findsOneWidget);
       expect(find.text('Demonstração Anatômica'), findsOneWidget);
       expect(find.byType(MuscleAnatomyView), findsOneWidget);
