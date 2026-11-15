@@ -20,10 +20,15 @@ class StudentSheet extends StatelessWidget {
     final s = student;
 
     Navigator.of(context).pop();
-    // TODO: buscar o perfil real do aluno pelo id (s.id)
+    // Mesmos dados que o próprio aluno vê hoje no perfil dele (conta e foto)
     context.pushFade(
       StudentProfilePage(
-        student: StudentProfile(name: s.name, email: ''),
+        student: StudentProfile(
+          name: s.name,
+          email: s.email,
+          phone: s.phone,
+          photoUrl: s.photoUrl,
+        ),
         isOwnerView: false,
       ),
     );
@@ -48,41 +53,52 @@ class StudentSheet extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 8),
-            InfoRow(icon: s.goal.icon, label: 'Objetivo', value: s.goal.label),
+            InfoRow(
+              icon: s.goal?.icon ?? Icons.flag_outlined,
+              label: 'Objetivo',
+              value: s.goal?.label ?? notInformed,
+            ),
             InfoRow(
               icon: Icons.fitness_center,
               label: 'Treino atual',
-              value: s.currentWorkout,
+              value: s.currentWorkout ?? notInformed,
             ),
             InfoRow(
               icon: Icons.trending_up,
               label: 'Frequência na semana',
-              value: '${s.doneThisWeek} de ${s.weeklyTarget} treinos',
+              value: s.doneThisWeek == null || s.weeklyTarget == null
+                  ? notInformed
+                  : '${s.doneThisWeek} de ${s.weeklyTarget} treinos',
             ),
             InfoRow(
               icon: Icons.monitor_heart_outlined,
               label: 'Última avaliação física',
-              value: formatDate(s.lastAssessment),
+              value: s.lastAssessment == null
+                  ? notInformed
+                  : formatDate(s.lastAssessment!),
             ),
             InfoRow(
               icon: Icons.event_outlined,
               label: 'Próximo acompanhamento',
-              value: formatDate(s.nextFollowUp),
+              value: s.nextFollowUp == null
+                  ? notInformed
+                  : formatDate(s.nextFollowUp!),
             ),
             if (canViewBilling)
               InfoRow(
                 icon: Icons.card_membership_outlined,
                 label: 'Plano / matrícula',
-                value: s.planName,
+                value: s.planName ?? notInformed,
                 valueWidget: Row(
                   children: [
                     Text(
-                      '${s.planName}  ',
+                      '${s.planName ?? notInformed}  ',
                       style: theme.textTheme.bodyLarge?.copyWith(
                         fontWeight: FontWeight.w600,
                       ),
                     ),
-                    StatusChip.active(s.enrollmentActive),
+                    if (s.enrollmentActive != null)
+                      StatusChip.active(s.enrollmentActive!),
                   ],
                 ),
               ),
