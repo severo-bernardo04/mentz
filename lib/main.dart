@@ -5,6 +5,7 @@ import 'core/routes/app_navigation.dart';
 import 'features/auth/auth_gate.dart';
 import 'services/settings_service.dart';
 import 'services/timer_overlay_service.dart';
+import 'services/workout_notification_service.dart';
 import 'widgets/timer_overlay_window.dart';
 import 'widgets/workout_timer_overlay.dart';
 
@@ -13,6 +14,9 @@ Future<void> main() async {
   await Firebase.initializeApp();
   // Cronômetro sobre outros apps (Android), quando o Mentz sai da frente
   TimerOverlayService().attach();
+  // Cronômetro na barra de notificações / tela de bloqueio (Android) e na
+  // Live Activity (iOS), durante o treino em andamento
+  WorkoutNotificationService().attach();
   runApp(const MyApp());
 }
 
