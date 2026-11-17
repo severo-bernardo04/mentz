@@ -18,8 +18,9 @@ abstract class TimerOverlayPlatform {
   /// Abre a tela de permissão do sistema. Retorna true se foi concedida.
   Future<bool> requestPermission();
 
-  /// Mostra o cronômetro, contando a partir de [startedAt].
-  Future<void> show(DateTime startedAt);
+  /// Mostra o cronômetro, contando a partir de [startedAt]. Com [frozenAt], o
+  /// treino está pausado e a janela mostra esse tempo parado.
+  Future<void> show(DateTime startedAt, {Duration? frozenAt});
 
   Future<void> close();
 }
@@ -51,8 +52,11 @@ class _AndroidTimerOverlay implements TimerOverlayPlatform {
       await FlutterOverlayWindow.requestPermission() ?? false;
 
   @override
-  Future<void> show(DateTime startedAt) async {
-    final startedAtMs = startedAt.millisecondsSinceEpoch;
+  Future<void> show(DateTime startedAt, {Duration? frozenAt}) async {
+    // Rodando: só o início (int). Pausado: o tempo parado, em um mapa
+    final Object message = frozenAt == null
+        ? startedAt.millisecondsSinceEpoch
+        : {'frozenMs': frozenAt.inMilliseconds};
 
     if (!await FlutterOverlayWindow.isActive()) {
       // O pacote usa o tamanho inicial em pixels físicos, não em dp: sem
@@ -75,11 +79,11 @@ class _AndroidTimerOverlay implements TimerOverlayPlatform {
       );
     }
 
-    await FlutterOverlayWindow.shareData(startedAtMs);
+    await FlutterOverlayWindow.shareData(message);
     for (final delay in _resendDelays) {
       Timer(delay, () async {
         if (await FlutterOverlayWindow.isActive()) {
-          await FlutterOverlayWindow.shareData(startedAtMs);
+          await FlutterOverlayWindow.shareData(message);
         }
       });
     }
@@ -112,7 +116,8 @@ class TimerOverlayService with WidgetsBindingObserver {
   bool _inBackground = false;
 
   /// Evita reabrir ou refechar a janela a cada notificação dos services.
-  DateTime? _shownFor;
+  /// Muda quando o treino começa, é pausado ou é retomado.
+  String? _shownFor;
 
   bool get isSupported => _platform.isSupported;
 
@@ -144,7 +149,7 @@ class TimerOverlayService with WidgetsBindingObserver {
 
     final granted =
         await _platform.isPermissionGranted() ||
-        await _platform.requestPermission();
+            await _platform.requestPermission();
     if (!granted) return false;
 
     await _settings.setTimerDisplayMode('overlay');
@@ -162,11 +167,11 @@ class TimerOverlayService with WidgetsBindingObserver {
   Future<void> _sync() => _queue = _queue.then((_) => _applyState());
 
   Future<void> _applyState() async {
-    final startedAt = _session.active?.startedAt;
+    final active = _session.active;
     final wanted =
         _inBackground &&
-        startedAt != null &&
-        _settings.timerDisplayMode == 'overlay';
+            active != null &&
+            _settings.timerDisplayMode == 'overlay';
 
     try {
       if (!wanted) {
@@ -176,12 +181,19 @@ class TimerOverlayService with WidgetsBindingObserver {
         return;
       }
 
-      if (_shownFor == startedAt) return;
+      // Pausado: o tempo parado. Rodando: o início sem contar as pausas
+      final frozen = active!.isPaused ? _session.elapsed : null;
+      final startedAt = active.effectiveStart;
+      final key = frozen != null
+          ? 'paused/${frozen.inMilliseconds}'
+          : 'running/${startedAt.millisecondsSinceEpoch}';
+
+      if (_shownFor == key) return;
       // A permissão pode ter sido retirada nas configurações do sistema
       if (!await _platform.isPermissionGranted()) return;
 
-      _shownFor = startedAt;
-      await _platform.show(startedAt);
+      _shownFor = key;
+      await _platform.show(startedAt, frozenAt: frozen);
     } catch (_) {
       _shownFor = null;
       debugPrint('Não foi possível atualizar o cronômetro em overlay.');

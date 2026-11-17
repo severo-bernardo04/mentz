@@ -8,9 +8,10 @@ import '../core/utils/duration_format.dart';
 /// Conteúdo da janela flutuante do Android (cronômetro sobre outros apps).
 ///
 /// Roda em um isolate separado do app, sem acesso aos services nem ao
-/// Firebase. Por isso recebe só o horário de início do treino (em
-/// milissegundos) pelo canal do `flutter_overlay_window` e calcula o tempo
-/// sozinho, pelo relógio.
+/// Firebase. Por isso recebe pelo canal do `flutter_overlay_window` só o
+/// horário de início do treino (int, em milissegundos) e calcula o tempo
+/// sozinho, pelo relógio; ou, com o treino pausado, um mapa
+/// `{'frozenMs': tempo}` com o tempo parado.
 class TimerOverlayWindow extends StatefulWidget {
   /// Mensagens vindas do app. Por padrão, o canal do pacote; os testes
   /// passam um stream próprio, porque o do pacote só aceita um ouvinte.
@@ -27,6 +28,9 @@ class _TimerOverlayWindowState extends State<TimerOverlayWindow> {
   Timer? _ticker;
   DateTime? _startedAt;
 
+  /// Tempo parado, quando o treino está pausado.
+  Duration? _frozen;
+
   @override
   void initState() {
     super.initState();
@@ -37,10 +41,20 @@ class _TimerOverlayWindowState extends State<TimerOverlayWindow> {
     });
   }
 
-  /// Recebe o horário de início enviado pelo app.
+  /// Recebe do app o horário de início (rodando) ou o tempo parado (pausado).
   void _onData(dynamic data) {
-    if (data is! int || !mounted) return;
-    setState(() => _startedAt = DateTime.fromMillisecondsSinceEpoch(data));
+    if (!mounted) return;
+
+    if (data is int) {
+      setState(() {
+        _startedAt = DateTime.fromMillisecondsSinceEpoch(data);
+        _frozen = null;
+      });
+    } else if (data is Map && data['frozenMs'] is num) {
+      setState(
+            () => _frozen = Duration(milliseconds: (data['frozenMs'] as num).toInt()),
+      );
+    }
   }
 
   @override
@@ -53,9 +67,10 @@ class _TimerOverlayWindowState extends State<TimerOverlayWindow> {
   @override
   Widget build(BuildContext context) {
     final startedAt = _startedAt;
-    final elapsed = startedAt == null
-        ? null
-        : DateTime.now().difference(startedAt);
+    final frozen = _frozen;
+    final elapsed =
+        frozen ??
+            (startedAt == null ? null : DateTime.now().difference(startedAt));
 
     // A pílula ocupa a janela inteira e o conteúdo se ajusta a ela com
     // FittedBox: o tamanho lógico da janela varia conforme o aparelho, e um
@@ -77,8 +92,10 @@ class _TimerOverlayWindowState extends State<TimerOverlayWindow> {
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Icon(
-                      Icons.timer_rounded,
+                    Icon(
+                      frozen != null
+                          ? Icons.pause_rounded
+                          : Icons.timer_rounded,
                       size: 18,
                       color: Colors.white,
                     ),

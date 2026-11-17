@@ -9,8 +9,8 @@ void main() {
   // pequeno: o conteúdo precisa se ajustar sem estourar.
   for (final size in const [Size(132, 56), Size(60, 24), Size(300, 120)]) {
     testWidgets('cabe em uma janela de ${size.width}x${size.height}', (
-      tester,
-    ) async {
+        tester,
+        ) async {
       tester.view.physicalSize = size;
       tester.view.devicePixelRatio = 1;
       addTearDown(tester.view.reset);
@@ -36,4 +36,20 @@ void main() {
       expect(find.textContaining('1:15:'), findsOneWidget);
     });
   }
+
+  testWidgets('com o treino pausado, mostra o tempo parado', (tester) async {
+    final messages = StreamController<dynamic>();
+    addTearDown(messages.close);
+
+    await tester.pumpWidget(
+      MaterialApp(home: TimerOverlayWindow(messages: messages.stream)),
+    );
+
+    messages.add({'frozenMs': const Duration(minutes: 12, seconds: 34).inMilliseconds});
+    await tester.pump();
+    await tester.pump(const Duration(seconds: 3));
+
+    expect(find.text('12:34'), findsOneWidget);
+    expect(find.byIcon(Icons.pause_rounded), findsOneWidget);
+  });
 }

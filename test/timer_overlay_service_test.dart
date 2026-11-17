@@ -12,6 +12,7 @@ class FakeOverlay implements TimerOverlayPlatform {
   bool supported;
   int requests = 0;
   DateTime? shown;
+  Duration? frozen;
   int closes = 0;
 
   FakeOverlay({
@@ -35,9 +36,10 @@ class FakeOverlay implements TimerOverlayPlatform {
   int shows = 0;
 
   @override
-  Future<void> show(DateTime startedAt) async {
+  Future<void> show(DateTime startedAt, {Duration? frozenAt}) async {
     shows++;
     shown = startedAt;
+    frozen = frozenAt;
   }
 
   @override
@@ -104,6 +106,22 @@ void main() {
     await Future.wait([first, second]);
 
     expect(fake.shows, 1);
+  });
+
+  test('com o treino pausado, a janela mostra o tempo parado', () async {
+    final fake = FakeOverlay();
+    var now = start;
+    session.startForTest(firestore, uid: 'user-a', clock: () => now);
+    await settle();
+    await settings.setTimerDisplayMode('overlay');
+    await session.start(chart, day);
+
+    now = start.add(const Duration(minutes: 10));
+    await session.pause();
+    now = start.add(const Duration(minutes: 40));
+    await overlay.syncForTest(platform: fake, inBackground: true);
+
+    expect(fake.frozen, const Duration(minutes: 10));
   });
 
   test('ao voltar para o app, a janela fecha', () async {

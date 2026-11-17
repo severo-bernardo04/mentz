@@ -16,7 +16,7 @@ import 'user_profile_service.dart';
 /// ativo é apagado no mesmo lote (batch), então nunca sobra um sem o outro.
 class WorkoutSessionService extends ChangeNotifier {
   static final WorkoutSessionService _instance =
-      WorkoutSessionService._internal();
+  WorkoutSessionService._internal();
   factory WorkoutSessionService() => _instance;
   WorkoutSessionService._internal();
 
@@ -54,14 +54,12 @@ class WorkoutSessionService extends ChangeNotifier {
   String? runningDayIdIn(String chartId) =>
       _active?.chartId == chartId ? _active!.dayId : null;
 
-  /// Tempo decorrido desde o início, calculado pelo relógio a cada leitura.
-  Duration get elapsed {
-    final active = _active;
-    if (active == null) return Duration.zero;
+  /// Tempo de treino, calculado pelo relógio a cada leitura: horário de
+  /// início menos o tempo pausado. Congelado enquanto o treino estiver pausado.
+  Duration get elapsed => _active?.elapsedAt(_clock()) ?? Duration.zero;
 
-    final elapsed = _clock().difference(active.startedAt);
-    return elapsed.isNegative ? Duration.zero : elapsed;
-  }
+  /// O treino em andamento está pausado.
+  bool get isPaused => _active?.isPaused ?? false;
 
   /// Começa a acompanhar o treino em andamento de [uid].
   void watchUser(String uid) {
@@ -116,10 +114,10 @@ class WorkoutSessionService extends ChangeNotifier {
   /// Com [carryFrom], os pendentes dessa sessão anterior vêm junto para serem
   /// feitos no mesmo tempo. Falha se já houver um treino em andamento.
   Future<void> start(
-    TrainingChart chart,
-    TrainingDay day, {
-    CompletedWorkout? carryFrom,
-  }) {
+      TrainingChart chart,
+      TrainingDay day, {
+        CompletedWorkout? carryFrom,
+      }) {
     final carry = carryFrom != null && carryFrom.canBeCompleted ? carryFrom : null;
     final carriedIndexes = carry?.pendingIndexes ?? const <int>[];
 
@@ -183,14 +181,52 @@ class WorkoutSessionService extends ChangeNotifier {
     }
   }
 
+  /// Pausa o cronômetro, preservando o tempo acumulado até agora.
+  Future<void> pause() => _setPaused(true);
+
+  /// Retoma o cronômetro; o tempo parado não entra na contagem.
+  Future<void> resume() => _setPaused(false);
+
+  Future<void> _setPaused(bool pause) async {
+    final previous = _active;
+    if (previous == null) throw StateError('Nenhum treino em andamento.');
+    if (previous.isPaused == pause) return;
+
+    final now = _clock();
+    final updated = pause ? previous.paused(now) : previous.resumed(now);
+
+    // Mostra o novo estado na hora; o Firestore confirma em seguida
+    _active = updated;
+    notifyListeners();
+
+    try {
+      await _userDoc
+          .update({
+        if (pause)
+          '$_field.pausedAt': Timestamp.fromDate(now)
+        else ...{
+          '$_field.pausedAt': FieldValue.delete(),
+          '$_field.pausedMs': updated.pausedDuration.inMilliseconds,
+        },
+      })
+          .timeout(_writeTimeout, onTimeout: () {});
+    } catch (_) {
+      if (identical(_active, updated)) {
+        _active = previous;
+        notifyListeners();
+      }
+      rethrow;
+    }
+  }
+
   /// Troca o exercício da posição [index] pela versão com os novos valores.
   /// Com [carried], a posição é na lista de pendentes trazidos.
   /// A tela muda na hora e a gravação no Firestore é agrupada.
   void updateExercise(
-    int index,
-    ExecutedExercise exercise, {
-    bool carried = false,
-  }) {
+      int index,
+      ExecutedExercise exercise, {
+        bool carried = false,
+      }) {
     final active = _active;
     if (active == null) return;
 
@@ -218,15 +254,15 @@ class WorkoutSessionService extends ChangeNotifier {
 
     _userDoc
         .update({
-          '$_field.exercises': active.exercises.map((e) => e.toMap()).toList(),
-          if (active.hasCarried)
-            '$_field.carriedExercises':
-                active.carriedExercises.map((e) => e.toMap()).toList(),
-        })
+      '$_field.exercises': active.exercises.map((e) => e.toMap()).toList(),
+      if (active.hasCarried)
+        '$_field.carriedExercises':
+        active.carriedExercises.map((e) => e.toMap()).toList(),
+    })
         .timeout(_writeTimeout, onTimeout: () {})
         .catchError((Object _) {
-          debugPrint('Não foi possível salvar as séries do treino.');
-        });
+      debugPrint('Não foi possível salvar as séries do treino.');
+    });
   }
 
   void _cancelPendingSave() {
@@ -289,10 +325,10 @@ class WorkoutSessionService extends ChangeNotifier {
   /// sessão no mesmo lote, e a sessão nova ganha a marca [CarriedPending]
   /// quando algum deles foi trabalhado. Retorna a sessão salva.
   Future<CompletedWorkout> finish(
-    TrainingChart chart,
-    TrainingDay day, {
-    CompletedWorkout? carriedOriginal,
-  }) async {
+      TrainingChart chart,
+      TrainingDay day, {
+        CompletedWorkout? carriedOriginal,
+      }) async {
     final active = _active;
     if (active == null || !active.isFor(chart.id, day.id) || active.isCompletion) {
       throw StateError('Este treino não está em andamento.');
@@ -377,10 +413,10 @@ class WorkoutSessionService extends ChangeNotifier {
   /// Passa a usar um Firestore e um relógio de teste, acompanhando [uid].
   @visibleForTesting
   void startForTest(
-    FirebaseFirestore firestore, {
-    required String uid,
-    DateTime Function()? clock,
-  }) {
+      FirebaseFirestore firestore, {
+        required String uid,
+        DateTime Function()? clock,
+      }) {
     _subscription?.cancel();
     _cancelPendingSave();
     _uid = null;
