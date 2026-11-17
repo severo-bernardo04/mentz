@@ -11,11 +11,11 @@ import '../../../services/workout_session_service.dart';
 
 /// Estado da tela de um treino: se está em andamento, o tempo decorrido, os
 /// exercícios pendentes (deste e de treinos anteriores) e as ações de
-/// iniciar, completar, ignorar, finalizar e descartar.
+/// iniciar, pausar, retomar, completar, ignorar, finalizar e descartar.
 ///
-/// O tempo vem do [WorkoutSessionService], calculado pelo horário de início.
-/// O timer daqui só pede para a tela redesenhar a cada segundo, então sair e
-/// voltar para a tela não altera a contagem.
+/// O tempo vem do [WorkoutSessionService], calculado pelo horário de início e
+/// pelas pausas. O timer daqui só pede para a tela redesenhar a cada segundo,
+/// então sair e voltar para a tela não altera a contagem.
 class WorkoutSessionController extends ChangeNotifier {
   final TrainingChart chart;
   final TrainingDay day;
@@ -32,7 +32,7 @@ class WorkoutSessionController extends ChangeNotifier {
     WorkoutSessionService? service,
     TrainingHistoryService? history,
   }) : _service = service ?? WorkoutSessionService(),
-       _history = history ?? TrainingHistoryService() {
+        _history = history ?? TrainingHistoryService() {
     _service.addListener(_onChanged);
     _history.addListener(_onChanged);
     _syncTicker();
@@ -43,6 +43,9 @@ class WorkoutSessionController extends ChangeNotifier {
 
   /// Este dia está com o cronômetro rodando (treino novo ou completando).
   bool get isRunning => _service.active?.isFor(chart.id, day.id) ?? false;
+
+  /// Este dia está com o cronômetro pausado.
+  bool get isPaused => isRunning && _service.isPaused;
 
   /// O cronômetro está rodando só para completar uma sessão anterior.
   bool get isCompleting => isRunning && _service.active!.isCompletion;
@@ -172,12 +175,13 @@ class WorkoutSessionController extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Liga o timer de redesenho só enquanto este treino estiver em andamento.
+  /// Liga o timer de redesenho só enquanto este treino estiver contando
+  /// (em pausa o tempo está parado, então não há o que redesenhar).
   void _syncTicker() {
-    if (isRunning) {
+    if (isRunning && !isPaused) {
       _ticker ??= Timer.periodic(
         const Duration(seconds: 1),
-        (_) => notifyListeners(),
+            (_) => notifyListeners(),
       );
     } else {
       _ticker?.cancel();
@@ -189,20 +193,28 @@ class WorkoutSessionController extends ChangeNotifier {
   /// aparecem junto para serem feitos no mesmo tempo.
   Future<bool> start({CompletedWorkout? carryFrom}) => _run(
         () => _service.start(chart, day, carryFrom: carryFrom),
-        'Não foi possível iniciar o treino.',
-      );
+    'Não foi possível iniciar o treino.',
+  );
 
   /// Inicia o cronômetro só para completar os pendentes de [session].
   Future<bool> startCompletion(CompletedWorkout session) => _run(
         () => _service.startCompletion(session),
-        'Não foi possível iniciar o cronômetro.',
-      );
+    'Não foi possível iniciar o cronômetro.',
+  );
 
   /// Deixa de oferecer os pendentes de [session] para completar.
   Future<bool> ignorePending(CompletedWorkout session) => _run(
         () => _history.ignorePending(session),
-        'Não foi possível ignorar os pendentes.',
-      );
+    'Não foi possível ignorar os pendentes.',
+  );
+
+  /// Pausa o cronômetro, preservando o tempo acumulado.
+  Future<bool> pause() =>
+      _run(_service.pause, 'Não foi possível pausar o treino.');
+
+  /// Retoma o cronômetro a partir do tempo em que foi pausado.
+  Future<bool> resume() =>
+      _run(_service.resume, 'Não foi possível retomar o treino.');
 
   Future<bool> discard() =>
       _run(_service.discard, 'Não foi possível descartar o treino.');

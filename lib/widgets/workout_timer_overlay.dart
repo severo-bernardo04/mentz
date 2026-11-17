@@ -85,7 +85,7 @@ class _WorkoutTimerOverlayState extends State<WorkoutTimerOverlay> {
     if (chart == null) return;
 
     final day = chart.days.firstWhere(
-      (d) => d.id == active.dayId,
+          (d) => d.id == active.dayId,
       // Dia removido da planilha: a tela usa só os exercícios registrados
       orElse: () => TrainingDay(id: active.dayId, name: 'Treino', order: 0),
     );
@@ -97,8 +97,8 @@ class _WorkoutTimerOverlayState extends State<WorkoutTimerOverlay> {
     final active = _service.active;
     final hidden =
         active == null ||
-        visibleWorkoutRoute.value ==
-            workoutRouteName(active.chartId, active.dayId);
+            visibleWorkoutRoute.value ==
+                workoutRouteName(active.chartId, active.dayId);
 
     // Mantém o cronômetro dentro da tela, mesmo após girar o aparelho
     final size = MediaQuery.sizeOf(context);
@@ -125,6 +125,7 @@ class _WorkoutTimerOverlayState extends State<WorkoutTimerOverlay> {
               }),
               child: _TimerPill(
                 text: formatStopwatch(_service.elapsed),
+                paused: active.isPaused,
                 onTap: () => _openWorkout(active),
               ),
             ),
@@ -137,9 +138,14 @@ class _WorkoutTimerOverlayState extends State<WorkoutTimerOverlay> {
 /// Pílula com o tempo do treino.
 class _TimerPill extends StatelessWidget {
   final String text;
+  final bool paused;
   final VoidCallback onTap;
 
-  const _TimerPill({required this.text, required this.onTap});
+  const _TimerPill({
+    required this.text,
+    required this.paused,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -162,7 +168,11 @@ class _TimerPill extends StatelessWidget {
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(Icons.timer_rounded, size: 18, color: cs.onPrimary),
+                Icon(
+                  paused ? Icons.pause_rounded : Icons.timer_rounded,
+                  size: 18,
+                  color: cs.onPrimary,
+                ),
                 const SizedBox(width: 6),
                 Text(
                   text,

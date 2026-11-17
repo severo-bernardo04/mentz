@@ -138,11 +138,11 @@ class _WorkoutSessionPageState extends State<WorkoutSessionPage>
         title: const Text('Treino anterior incompleto'),
         content: Text(
           'O ${_sessionName(previous)} ficou com '
-          '${previous.pendingIndexes.length} exercício(s) pendente(s).\n\n'
-          '• Completar o anterior: só registra o que faltou. Este treino não '
-          'é contado e passa para a próxima data.\n'
-          '• Iniciar ${widget.day.name}: os pendentes aparecem junto e podem '
-          'ser feitos no mesmo tempo.',
+              '${previous.pendingIndexes.length} exercício(s) pendente(s).\n\n'
+              '• Completar o anterior: só registra o que faltou. Este treino não '
+              'é contado e passa para a próxima data.\n'
+              '• Iniciar ${widget.day.name}: os pendentes aparecem junto e podem '
+              'ser feitos no mesmo tempo.',
         ),
         actionsOverflowDirection: VerticalDirection.down,
         actionsOverflowButtonSpacing: 4,
@@ -191,7 +191,7 @@ class _WorkoutSessionPageState extends State<WorkoutSessionPage>
     if (previous.dayId == widget.day.id) return;
 
     final day = widget.chart.days.firstWhere(
-      (d) => d.id == previous.dayId,
+          (d) => d.id == previous.dayId,
       // Dia removido da planilha: a tela usa só os exercícios pendentes
       orElse: () => TrainingDay(
         id: previous.dayId!,
@@ -252,7 +252,7 @@ class _WorkoutSessionPageState extends State<WorkoutSessionPage>
         completing == null
             ? 'O cronômetro para e o treino é salvo no histórico.'
             : 'O cronômetro para e os exercícios são adicionados ao '
-                  '${_sessionName(completing)}.',
+            '${_sessionName(completing)}.',
       ].join('\n\n'),
       confirmLabel: 'Finalizar',
     );
@@ -336,13 +336,13 @@ class _WorkoutSessionPageState extends State<WorkoutSessionPage>
     }
 
     Widget card(int i) => SessionExerciseCard(
-          key: _keyFor(i),
-          index: i,
-          planned: c.plannedAt(i),
-          executed: all[i],
-          previousSets: c.previousSetsFor(all[i].exerciseId),
-          onChanged: (exercise) => c.updateExercise(i, exercise),
-        );
+      key: _keyFor(i),
+      index: i,
+      planned: c.plannedAt(i),
+      executed: all[i],
+      previousSets: c.previousSetsFor(all[i].exerciseId),
+      onChanged: (exercise) => c.updateExercise(i, exercise),
+    );
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -408,7 +408,11 @@ class _WorkoutSessionPageState extends State<WorkoutSessionPage>
                 _ScheduleNotice(next: c.nextWorkout!, day: day),
                 const SizedBox(height: 12),
               ],
-              SessionTimerCard(elapsed: c.elapsed, startedAt: c.startedAt),
+              SessionTimerCard(
+                elapsed: c.elapsed,
+                startedAt: c.startedAt,
+                paused: c.isPaused,
+              ),
               const SizedBox(height: 16),
               if (completing != null) ...[
                 _CompletingNotice(_sessionName(completing)),
@@ -421,7 +425,7 @@ class _WorkoutSessionPageState extends State<WorkoutSessionPage>
               if (c.otherIsRunning) ...[
                 ErrorBanner(
                   'O ${c.otherWorkoutName ?? 'outro treino'} está em andamento. '
-                  'Finalize-o antes de iniciar este.',
+                      'Finalize-o antes de iniciar este.',
                 ),
                 const SizedBox(height: 12),
               ],
@@ -441,15 +445,25 @@ class _WorkoutSessionPageState extends State<WorkoutSessionPage>
                 ),
                 const SizedBox(height: 12),
               ],
-              if (c.isRunning)
+              if (c.isRunning) ...[
+                AppButton(
+                  key: const Key('pause_resume_workout_button'),
+                  label: c.isPaused ? 'RETOMAR' : 'PAUSAR',
+                  icon: c.isPaused
+                      ? Icons.play_arrow_rounded
+                      : Icons.pause_rounded,
+                  loading: c.busy,
+                  onPressed: () => c.isPaused ? c.resume() : c.pause(),
+                ),
+                const SizedBox(height: 12),
                 AppButton(
                   key: const Key('finish_workout_button'),
                   label: 'FINALIZAR',
                   icon: Icons.stop_rounded,
                   loading: c.busy,
                   onPressed: _finish,
-                )
-              else if (!c.otherIsRunning)
+                ),
+              ] else if (!c.otherIsRunning)
                 AppButton(
                   key: const Key('start_workout_button'),
                   label: 'INICIAR',
