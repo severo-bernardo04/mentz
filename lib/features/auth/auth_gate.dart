@@ -88,6 +88,7 @@ class _SignedInGateState extends State<_SignedInGate> {
           userName: profile.name,
           userEmail: profile.email,
           role: profile.role,
+          photoBase64: profile.photoBase64,
         );
       },
     );

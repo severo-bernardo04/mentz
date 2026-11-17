@@ -1,18 +1,21 @@
 import 'package:flutter/material.dart';
 
 import '../../../widgets/app_card.dart';
+import 'dart:convert';
 
 /// Cartão de boas-vindas com avatar, nome e e-mail.
 /// Ao clicar, navega para o perfil do usuário.
 class WelcomeCard extends StatelessWidget {
   final String? userName;
   final String? userEmail;
+  final String? photoBase64;
   final VoidCallback? onTap;
 
   const WelcomeCard({
     super.key,
     this.userName,
     this.userEmail,
+    this.photoBase64,
     this.onTap,
   });
 
@@ -24,6 +27,16 @@ class WelcomeCard extends StatelessWidget {
     if (emailName.isNotEmpty) return emailName;
 
     return 'visitante';
+  }
+
+  ImageProvider? get _photo {
+    final p = photoBase64;
+    if (p == null || p.isEmpty) return null;
+    try {
+      return MemoryImage(base64Decode(p));
+    } catch (_) {
+      return null;
+    }
   }
 
   @override
@@ -39,7 +52,9 @@ class WelcomeCard extends StatelessWidget {
           CircleAvatar(
             radius: 30,
             backgroundColor: cs.primary,
-            child: Text(
+            backgroundImage: _photo,
+            child: _photo != null ? null
+            :Text(
               name[0].toUpperCase(),
               style: TextStyle(
                 fontSize: 26,

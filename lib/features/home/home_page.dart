@@ -28,11 +28,14 @@ class HomePage extends StatefulWidget {
   /// Papel do usuário vindo do backend/Firestore.
   final UserRole role;
 
+  final String? photoBase64;
+
   const HomePage({
     super.key,
     this.userName,
     this.userEmail,
     this.role = UserRole.student,
+    this.photoBase64,
   });
 
   @override
@@ -88,6 +91,7 @@ class _HomePageState extends State<HomePage> {
                       child: WelcomeCard(
                         userName: widget.userName,
                         userEmail: widget.userEmail,
+                        photoBase64: widget.photoBase64,
                         onTap: _openProfile,
                       ),
                     ),
