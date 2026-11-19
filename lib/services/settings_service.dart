@@ -50,6 +50,15 @@ class SettingsService extends ChangeNotifier {
         seedColor: Colors.indigo,
         brightness: Brightness.light,
       ),
+      snackBarTheme: const SnackBarThemeData(
+        backgroundColor: Colors.white,
+        contentTextStyle: TextStyle(
+          color: Color(0xFF0F172A),
+          fontSize: 14,
+          fontWeight: FontWeight.w500,
+        ),
+        actionTextColor: Color(0xFF4F46E5),
+      ),
     );
   }
 
@@ -63,6 +72,15 @@ class SettingsService extends ChangeNotifier {
         brightness: Brightness.dark,
       ),
       scaffoldBackgroundColor: const Color(0xFF12141C),
+      snackBarTheme: const SnackBarThemeData(
+        backgroundColor: Color(0xFF1E2235),
+        contentTextStyle: TextStyle(
+          color: Colors.white,
+          fontSize: 14,
+          fontWeight: FontWeight.w500,
+        ),
+        actionTextColor: Color(0xFF818CF8),
+      ),
     );
   }
 
