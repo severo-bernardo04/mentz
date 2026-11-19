@@ -10,6 +10,12 @@ class AppUser {
   final String? phone;
   final DateTime? createdAt;
   final String? photoBase64;
+  final DateTime? birthDate;
+  final String? sex;
+
+  // Medidas corporais (estudante / usuário)
+  final double? heightCm;
+  final List<WeightEntry> weightHistory;
 
   // Preferências guardadas no campo `settings` do documento
   final String? themeMode;
@@ -42,6 +48,10 @@ class AppUser {
     this.phone,
     this.createdAt,
     this.photoBase64,
+    this.birthDate,
+    this.sex,
+    this.heightCm,
+    this.weightHistory = const [],
     this.themeMode,
     this.language,
     this.timerDisplayMode,
@@ -73,6 +83,13 @@ class AppUser {
       phone: map['phone'] as String?,
       createdAt: (map['createdAt'] as Timestamp?)?.toDate(),
       photoBase64: map['photoBase64'] as String?,
+      birthDate: (map['birthDate'] as Timestamp?)?.toDate() ??
+          (map['birthDate'] is String
+              ? DateTime.tryParse(map['birthDate'] as String)
+              : null),
+      sex: map['sex'] as String?,
+      heightCm: (map['heightCm'] as num?)?.toDouble(),
+      weightHistory: _parseWeightHistory(map['weightHistory'], map['weight']),
       themeMode: settings['themeMode'] as String?,
       language: settings['language'] as String?,
       timerDisplayMode: settings['timerDisplayMode'] as String?,
@@ -98,4 +115,25 @@ class AppUser {
 
   static List<String> _strings(Object? value) =>
       [for (final v in (value as List?) ?? const []) v.toString()];
+
+  static List<WeightEntry> _parseWeightHistory(Object? raw, Object? singleWeight) {
+    final list = <WeightEntry>[];
+    if (raw is List) {
+      for (final item in raw) {
+        if (item is Map) {
+          final dateRaw = item['date'];
+          final date = dateRaw is Timestamp
+              ? dateRaw.toDate()
+              : (dateRaw is String ? DateTime.tryParse(dateRaw) ?? DateTime.now() : DateTime.now());
+          final kg = (item['kg'] as num?)?.toDouble() ?? 0.0;
+          if (kg > 0) list.add(WeightEntry(date, kg));
+        }
+      }
+    }
+    if (list.isEmpty && singleWeight is num && singleWeight > 0) {
+      list.add(WeightEntry(DateTime.now(), singleWeight.toDouble()));
+    }
+    list.sort((a, b) => a.date.compareTo(b.date));
+    return list;
+  }
 }
