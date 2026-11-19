@@ -1,6 +1,7 @@
 import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:mentz/features/training_history/widgets/workout_share_dialog.dart';
 import 'package:mentz/features/training_history/workout_spreadsheet_page.dart';
 import 'package:mentz/features/workout_session/workout_session_page.dart';
 import 'package:mentz/models/profile_models.dart';
@@ -25,7 +26,8 @@ void main() {
     days: const [dayA, dayB],
   );
 
-  Widget page(TrainingDay day) => MaterialApp(
+  Widget page(TrainingDay day, {ThemeData? theme}) => MaterialApp(
+        theme: theme,
         home: Scaffold(
           body: Builder(
             builder: (context) => Center(
@@ -128,6 +130,36 @@ void main() {
     expect(sessions.docs.single.data()['minutes'], 45);
     expect(service.active, isNull);
     expect(find.byType(WorkoutSessionPage), findsNothing);
+    // Não abre automaticamente o diálogo (sem concorrência de modais)
+    expect(find.byType(WorkoutShareDialog), findsNothing);
+    expect(find.byKey(const Key('snack_share_workout_button')), findsOneWidget);
+
+    final snackWidget = tester.widget<SnackBar>(find.byType(SnackBar));
+    expect(snackWidget.backgroundColor, Colors.white);
+
+    await tester.tap(find.byKey(const Key('snack_share_workout_button')));
+    await tester.pumpAndSettle();
+    expect(find.byType(WorkoutShareDialog), findsOneWidget);
+  });
+
+  testWidgets('FINALIZAR com tema escuro adapta a mensagem de compartilhamento (SnackBar)', (tester) async {
+    await tester.pumpWidget(page(dayA, theme: ThemeData.dark()));
+    await tester.tap(find.text('abrir'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const Key('start_workout_button')));
+    await confirm(tester, 'Iniciar');
+
+    now = now.add(const Duration(minutes: 45));
+    await tester.tap(find.byKey(const Key('finish_workout_button')));
+    await confirm(tester, 'Finalizar');
+    await tester.pumpAndSettle();
+
+    expect(find.byType(WorkoutShareDialog), findsNothing);
+    expect(find.byKey(const Key('snack_share_workout_button')), findsOneWidget);
+
+    final snackWidget = tester.widget<SnackBar>(find.byType(SnackBar));
+    expect(snackWidget.backgroundColor, const Color(0xFF1E2235));
   });
 
   group('Com exercícios', () {
