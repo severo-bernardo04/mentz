@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:mentz/features/profile/student/widgets/assessment_tile.dart';
+import 'package:mentz/features/profile/student/widgets/bmi_card.dart';
+import 'package:mentz/features/profile/student/widgets/edit_physical_measures_sheet.dart';
 import 'package:mentz/features/profile/student/widgets/goal_card.dart';
 import 'package:mentz/features/profile/student/widgets/training_week_row.dart';
 import 'package:mentz/features/profile/widgets/privacy_banner.dart';
@@ -35,17 +37,77 @@ class _PhysicalTabState extends State<PhysicalTab> {
       'apenas ao treinador responsável. Não compartilhe.';
 
   bool _hidden = false;
+  late double? _height;
+  late double? _weight;
+  late DateTime? _birthDate;
+  late String? _sex;
+  late List<WeightEntry> _weightHistory;
+
+  @override
+  void initState() {
+    super.initState();
+    _height = widget.student.heightCm;
+    _weight = widget.student.currentWeight;
+    _birthDate = widget.student.birthDate;
+    _sex = widget.student.sex;
+    _weightHistory = widget.student.weightHistory;
+  }
+
+  @override
+  void didUpdateWidget(covariant PhysicalTab oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.student.heightCm != widget.student.heightCm) {
+      _height = widget.student.heightCm;
+    }
+    if (oldWidget.student.currentWeight != widget.student.currentWeight) {
+      _weight = widget.student.currentWeight;
+      _weightHistory = widget.student.weightHistory;
+    }
+    if (oldWidget.student.birthDate != widget.student.birthDate) {
+      _birthDate = widget.student.birthDate;
+    }
+    if (oldWidget.student.sex != widget.student.sex) {
+      _sex = widget.student.sex;
+    }
+  }
 
   String _mask(String v) => _hidden ? '•••' : v;
+
+  Future<void> _openEditMeasures(BuildContext context) async {
+    final result = await showEditPhysicalMeasuresSheet(
+      context,
+      initialHeightCm: _height,
+      initialWeightKg: _weight,
+      initialBirthDate: _birthDate,
+      initialSex: _sex,
+      weightHistory: _weightHistory,
+    );
+    if (result != null && mounted) {
+      setState(() {
+        _height = result.heightCm;
+        if (result.birthDate != null) _birthDate = result.birthDate;
+        if (result.sex != null) _sex = result.sex;
+        if (result.weightKg != null) {
+          _weight = result.weightKg;
+          _weightHistory = [
+            ..._weightHistory,
+            WeightEntry(DateTime.now(), result.weightKg!),
+          ];
+        }
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final s = widget.student;
 
-    final height = s.heightCm;
-    final weight = s.currentWeight;
-    final delta = weight == null ? null : weight - s.weightHistory.first.kg;
+    final height = _height;
+    final weight = _weight;
+    final delta = weight == null || _weightHistory.isEmpty
+        ? null
+        : weight - _weightHistory.first.kg;
     final deltaText = delta == null
         ? ''
         : '${delta >= 0 ? '+' : ''}${delta.toStringAsFixed(1)} kg';
@@ -63,32 +125,14 @@ class _PhysicalTabState extends State<PhysicalTab> {
           hidden: _hidden,
           onToggle: () => setState(() => _hidden = !_hidden),
         ),
-        SectionCard(
-          title: 'Medidas atuais',
-          icon: Icons.straighten,
-          child: Row(
-            children: [
-              Expanded(
-                child: StatTile(
-                  icon: Icons.height,
-                  value: height == null
-                      ? '—'
-                      : _mask('${height.toStringAsFixed(0)} cm'),
-                  label: 'Altura',
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: StatTile(
-                  icon: Icons.monitor_weight_outlined,
-                  value: weight == null
-                      ? '—'
-                      : _mask('${weight.toStringAsFixed(1)} kg'),
-                  label: 'Peso atual',
-                ),
-              ),
-            ],
-          ),
+        BmiCard(
+          heightCm: height,
+          weightKg: weight,
+          birthDate: _birthDate,
+          sex: _sex,
+          hidden: _hidden,
+          isOwnerView: widget.isOwnerView,
+          onEdit: widget.isOwnerView ? () => _openEditMeasures(context) : null,
         ),
         GoalCard(student: s, hidden: _hidden),
         SectionCard(
@@ -116,14 +160,14 @@ class _PhysicalTabState extends State<PhysicalTab> {
                   label: _mask(deltaText),
                   icon: delta <= 0 ? Icons.trending_down : Icons.trending_up,
                 ),
-          child: s.weightHistory.isEmpty
+          child: _weightHistory.isEmpty
               ? const EmptyHint('Nenhum peso registrado.')
               : _hidden
               ? const EmptyHint('Valores ocultos')
               : SimpleLineChart(
-                  values: [for (final w in s.weightHistory) w.kg],
+                  values: [for (final w in _weightHistory) w.kg],
                   labels: [
-                    for (final w in s.weightHistory) formatShort(w.date),
+                    for (final w in _weightHistory) formatShort(w.date),
                   ],
                   unit: ' kg',
                 ),

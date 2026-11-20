@@ -13,6 +13,7 @@ import '../../widgets/confirm_dialog.dart';
 import '../../widgets/empty_hint.dart';
 import '../../widgets/error_banner.dart';
 import '../../widgets/section_card.dart';
+import '../training_history/widgets/workout_share_dialog.dart';
 import '../training_history/workout_spreadsheet_page.dart';
 import 'controllers/workout_session_controller.dart';
 import 'widgets/muscle_score_list.dart';
@@ -261,12 +262,64 @@ class _WorkoutSessionPageState extends State<WorkoutSessionPage>
     final session = await c.finish();
     if (session == null || !mounted) return;
 
-    context.showSnack(
-      completing == null
-          ? 'Treino salvo no histórico (${session.minutes} min).'
-          : '${_sessionName(completing)} atualizado.',
+    final messenger = ScaffoldMessenger.of(context);
+    final nav = Navigator.of(context);
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    // Cores adaptativas para a mensagem de compartilhamento (SnackBar)
+    final snackBgColor = isDark ? const Color(0xFF1E2235) : Colors.white;
+    final snackTextColor = isDark ? Colors.white : const Color(0xFF0F172A);
+    final snackBorderColor =
+        isDark ? Colors.white.withAlpha(30) : const Color(0xFFE2E8F0);
+    final snackActionColor =
+        isDark ? const Color(0xFF818CF8) : const Color(0xFF4F46E5);
+
+    nav.pop();
+
+    messenger.showSnackBar(
+      SnackBar(
+        backgroundColor: snackBgColor,
+        elevation: isDark ? 8 : 4,
+        shape: RoundedRectangleBorder(
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+          side: BorderSide(color: snackBorderColor, width: 1),
+        ),
+        content: Row(
+          children: [
+            const Icon(
+              Icons.check_circle_rounded,
+              color: Color(0xFF22C55E),
+              size: 20,
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                completing == null
+                    ? 'Treino salvo no histórico (${session.minutes} min).'
+                    : '${_sessionName(completing)} atualizado.',
+                style: TextStyle(
+                  color: snackTextColor,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ],
+        ),
+        action: SnackBarAction(
+          key: const Key('snack_share_workout_button'),
+          label: 'COMPARTILHAR',
+          textColor: snackActionColor,
+          onPressed: () {
+            messenger.removeCurrentSnackBar();
+            final target = appNavigatorKey.currentContext ?? nav.context;
+            showWorkoutShareDialog(target, session: session);
+          },
+        ),
+        duration: const Duration(seconds: 8),
+      ),
     );
-    Navigator.of(context).pop();
   }
 
   Future<void> _discard() async {
