@@ -51,7 +51,7 @@ class StudentProfilePage extends StatelessWidget {
         ProfileTabSpec(Icons.insights_outlined, 'Progresso'),
       ],
       pages: [
-        PersonalTab(student: student),
+        PersonalTab(student: student, isOwnerView: isOwnerView),
         PhysicalTab(student: student, isOwnerView: isOwnerView),
         WorkoutTab(student: student),
         ProgressTab(student: student),
