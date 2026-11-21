@@ -29,6 +29,13 @@ class WelcomeCard extends StatelessWidget {
     return 'visitante';
   }
 
+  String get _greeting {
+    final hour = DateTime.now().hour;
+    if (hour >= 5 && hour < 12) return 'Bom dia';
+    if (hour >= 12 && hour < 18) return 'Boa tarde';
+    return 'Boa noite';
+  }
+
   ImageProvider? get _photo {
     final p = photoBase64;
     if (p == null || p.isEmpty) return null;
@@ -44,6 +51,7 @@ class WelcomeCard extends StatelessWidget {
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
     final name = _displayName;
+
 
     return AppCard(
       onTap: onTap,
@@ -69,7 +77,7 @@ class WelcomeCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Olá, $name!',
+                  '$_greeting, $name!',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: theme.textTheme.titleLarge?.copyWith(
