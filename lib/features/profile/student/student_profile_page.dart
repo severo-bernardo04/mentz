@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:mentz/core/utils/snackbars.dart';
 import 'package:mentz/features/profile/student/tabs/personal_tab.dart';
 import 'package:mentz/features/profile/student/tabs/physical_tab.dart';
-import 'package:mentz/features/profile/student/tabs/progress_tab.dart';
 import 'package:mentz/features/profile/widgets/profile_header.dart';
 import 'package:mentz/features/profile/widgets/profile_scaffold.dart';
 import 'package:mentz/models/profile_models.dart';
@@ -46,12 +45,10 @@ class StudentProfilePage extends StatelessWidget {
       tabs: const [
         ProfileTabSpec(Icons.person_outline, 'Pessoal'),
         ProfileTabSpec(Icons.monitor_heart_outlined, 'Físico'),
-        ProfileTabSpec(Icons.insights_outlined, 'Progresso'),
       ],
       pages: [
         PersonalTab(student: student, isOwnerView: isOwnerView),
         PhysicalTab(student: student, isOwnerView: isOwnerView),
-        ProgressTab(student: student),
       ],
     );
   }
