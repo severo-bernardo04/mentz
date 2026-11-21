@@ -78,7 +78,7 @@ class WelcomeCard extends StatelessWidget {
                 ),
                 if (userEmail != null && userEmail!.isNotEmpty)
                   Text(
-                    userEmail!,
+                    'Toque para acessar seu perfil',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: theme.textTheme.bodyMedium?.copyWith(
