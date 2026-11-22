@@ -11,6 +11,7 @@ import '../../widgets/status_chip.dart';
 import '../workout_session/widgets/pending_exercises_sheet.dart';
 import '../workout_session/widgets/set_count_summary.dart';
 import 'widgets/executed_exercise_card.dart';
+import 'widgets/workout_share_dialog.dart';
 import 'workout_spreadsheet_page.dart';
 
 /// Tela de detalhes de uma sessão de treino específica do histórico.
@@ -32,6 +33,12 @@ class WorkoutSessionDetailPage extends StatelessWidget {
       title: 'Detalhes do Treino',
       maxWidth: 620,
       actions: [
+        IconButton(
+          key: const Key('share_workout_icon_button'),
+          tooltip: 'Compartilhar no Instagram',
+          icon: const Icon(Icons.share_rounded),
+          onPressed: () => showWorkoutShareDialog(context, session: session),
+        ),
         IconButton(
           tooltip: 'Visualizar em Planilha',
           icon: const Icon(Icons.table_chart_outlined),
@@ -208,6 +215,16 @@ class WorkoutSessionDetailPage extends StatelessWidget {
               onPressed: () => context.pushFade(
                 WorkoutSpreadsheetPage(initialPlan: session.plan),
               ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          FadeSlideIn(
+            delay: const Duration(milliseconds: 280),
+            child: AppButton(
+              key: const Key('share_workout_button'),
+              label: 'Compartilhar nos Stories',
+              icon: Icons.camera_alt_rounded,
+              onPressed: () => showWorkoutShareDialog(context, session: session),
             ),
           ),
         ],

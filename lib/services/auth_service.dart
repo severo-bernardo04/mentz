@@ -38,6 +38,10 @@ class AuthService {
     required String name,
     required String email,
     required String password,
+    DateTime? birthDate,
+    String? sex,
+    double? heightCm,
+    double? weight,
   }) {
     return _guard(() async {
       final cred = await _firebase.createUserWithEmailAndPassword(
@@ -47,7 +51,14 @@ class AuthService {
       final user = cred.user!;
 
       await user.updateDisplayName(name.trim());
-      await _profiles.createIfMissing(user, name: name);
+      await _profiles.createIfMissing(
+        user,
+        name: name,
+        birthDate: birthDate,
+        sex: sex,
+        heightCm: heightCm,
+        weight: weight,
+      );
     });
   }
 

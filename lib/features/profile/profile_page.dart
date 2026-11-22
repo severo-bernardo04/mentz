@@ -35,6 +35,10 @@ class ProfilePage extends StatelessWidget {
         final email = u?.email ?? userEmail ?? '';
         final phone = u?.phone;
         final photo = u?.photoBase64;
+        final birthDate = u?.birthDate;
+        final sex = u?.sex;
+        final heightCm = u?.heightCm;
+        final weightHistory = u?.weightHistory ?? const [];
 
         return switch (role) {
           UserRole.student => StudentProfilePage(
@@ -43,6 +47,10 @@ class ProfilePage extends StatelessWidget {
               email: email,
               phone: phone,
               photoUrl: photo,
+              birthDate: birthDate,
+              sex: sex,
+              heightCm: heightCm,
+              weightHistory: weightHistory,
             ),
           ),
           UserRole.trainer => _TrainerProfileLoader(

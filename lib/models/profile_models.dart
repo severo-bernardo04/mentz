@@ -983,6 +983,56 @@ class StudentProfile {
   /// Peso mais recente; null se nenhum foi registrado.
   double? get currentWeight =>
       weightHistory.isEmpty ? null : weightHistory.last.kg;
+
+  StudentProfile copyWith({
+    String? name,
+    String? email,
+    String? phone,
+    DateTime? birthDate,
+    String? sex,
+    DateTime? enrollmentDate,
+    String? plan,
+    bool? enrollmentActive,
+    String? photoUrl,
+    double? heightCm,
+    FitnessGoal? goal,
+    double? targetWeight,
+    int? weeklyTarget,
+    List<WeightEntry>? weightHistory,
+    List<Assessment>? assessments,
+    List<WorkoutPlan>? workouts,
+    List<int>? trainingDays,
+    String? trainerName,
+    List<PersonalRecord>? records,
+    List<String>? goalsReached,
+    List<BodyMeasure>? measures,
+    List<Achievement>? achievements,
+  }) {
+    return StudentProfile(
+      name: name ?? this.name,
+      email: email ?? this.email,
+      phone: phone ?? this.phone,
+      birthDate: birthDate ?? this.birthDate,
+      sex: sex ?? this.sex,
+      enrollmentDate: enrollmentDate ?? this.enrollmentDate,
+      plan: plan ?? this.plan,
+      enrollmentActive: enrollmentActive ?? this.enrollmentActive,
+      photoUrl: photoUrl ?? this.photoUrl,
+      heightCm: heightCm ?? this.heightCm,
+      goal: goal ?? this.goal,
+      targetWeight: targetWeight ?? this.targetWeight,
+      weeklyTarget: weeklyTarget ?? this.weeklyTarget,
+      weightHistory: weightHistory ?? this.weightHistory,
+      assessments: assessments ?? this.assessments,
+      workouts: workouts ?? this.workouts,
+      trainingDays: trainingDays ?? this.trainingDays,
+      trainerName: trainerName ?? this.trainerName,
+      records: records ?? this.records,
+      goalsReached: goalsReached ?? this.goalsReached,
+      measures: measures ?? this.measures,
+      achievements: achievements ?? this.achievements,
+    );
+  }
 }
 
 
