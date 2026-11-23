@@ -56,6 +56,7 @@ dev_dependencies:
   # rules and activating additional ones.
   flutter_lints: ^6.0.0
   fake_cloud_firestore: ^4.5.0
+  flutter_launcher_icons: ^0.14.4
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
@@ -67,6 +68,10 @@ flutter:
   # included with your application, so that you can use the icons in
   # the material Icons class.
   uses-material-design: true
+
+  # Logo do Mentz (silhueta branca; o app pinta com a cor do tema)
+  assets:
+    - assets/branding/mentz_logo.png
 
   # To add assets to your application, add an assets section, like this:
   # assets:
@@ -98,3 +103,16 @@ flutter:
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package
+
+# Ícone do aplicativo no Android, gerado com `dart run flutter_launcher_icons`
+# a partir das imagens em branding/launcher/ (não entram no app).
+flutter_launcher_icons:
+  android: "ic_launcher"
+  ios: false
+  image_path: "branding/launcher/icon.png"
+  min_sdk_android: 21
+  adaptive_icon_background: "branding/launcher/background.png"
+  adaptive_icon_foreground: "branding/launcher/foreground.png"
+  # A figura ocupa a camada inteira, com as pernas saindo pela borda
+  adaptive_icon_foreground_inset: 0
+  adaptive_icon_monochrome: "branding/launcher/monochrome.png"
