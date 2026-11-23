@@ -3,11 +3,18 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:mentz/widgets/app_logo.dart';
 import 'package:mentz/features/training_history/widgets/workout_share_card.dart';
 import 'package:mentz/features/training_history/widgets/workout_share_dialog.dart';
 import 'package:mentz/features/training_history/workout_session_detail_page.dart';
 import 'package:mentz/models/profile_models.dart';
 import 'package:mentz/services/workout_share_service.dart';
+
+/// Foto de fundo do cartão. A logo do Mentz também é um Image, mas vem de
+/// asset (AssetImage), então fica de fora.
+final _backgroundPhoto = find.byWidgetPredicate(
+  (w) => w is Image && w.image is! AssetImage,
+);
 
 void main() {
   // 1x1 PNG transparente válido para testes
@@ -75,7 +82,7 @@ void main() {
 
       // Marca e branding
       expect(find.text('MENTZ'), findsOneWidget);
-      expect(find.byIcon(Icons.psychology_rounded), findsOneWidget);
+      expect(find.byType(AppLogo), findsOneWidget);
       expect(find.text('#MentzApp'), findsOneWidget);
 
       // Ícone de upload para foto
@@ -123,11 +130,11 @@ void main() {
       );
 
       // Fundo deve conter a imagem
-      expect(find.byType(Image), findsOneWidget);
+      expect(_backgroundPhoto, findsOneWidget);
 
       // Informações sobrepostas na imagem
       expect(find.text('MENTZ'), findsOneWidget);
-      expect(find.byIcon(Icons.psychology_rounded), findsOneWidget);
+      expect(find.byType(AppLogo), findsOneWidget);
       expect(find.text('Peito & Tríceps'), findsOneWidget);
       expect(find.text('48 min'), findsOneWidget);
       expect(find.text('3/3 feitos'), findsOneWidget);
@@ -229,7 +236,7 @@ void main() {
 
       expect(sourcePassed, ImageSource.camera);
       // Card agora tem a imagem de fundo
-      expect(find.byType(Image), findsOneWidget);
+      expect(_backgroundPhoto, findsOneWidget);
       expect(find.byKey(const Key('remove_photo_button')), findsOneWidget);
       expect(find.text('Foto adicionada! Pronto para compartilhar'), findsOneWidget);
 
@@ -285,7 +292,7 @@ void main() {
 
       // Nenhum botão deve ter spinner agora
       expect(find.byType(CircularProgressIndicator), findsNothing);
-      expect(find.byType(Image), findsOneWidget);
+      expect(_backgroundPhoto, findsOneWidget);
 
       // 2. Agora clica no botão Câmera ('Nova Foto')
       pickerCompleter = Completer<Uint8List?>();

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../widgets/app_logo.dart';
+
 /// Logo com Hero (anima na troca entre login e registro).
 class AuthLogo extends StatelessWidget {
   const AuthLogo({super.key});
@@ -31,7 +33,19 @@ class AuthLogo extends StatelessWidget {
                 ),
               ],
             ),
-            child: Icon(Icons.psychology_rounded, size: 40, color: cs.onPrimary),
+            // Silhueta do Mentz em branco sobre o degradê do tema, na mesma
+            // proporção do ícone do Android: a figura ocupa o círculo e as
+            // pernas continuam além da borda de baixo
+            child: ClipOval(
+              child: OverflowBox(
+                maxHeight: 76 + 18, // figura + recuo; o excesso some pela borda
+                alignment: Alignment.topCenter,
+                child: Padding(
+                  padding: const EdgeInsets.only(top: 18),
+                  child: AppLogo(size: 76, color: cs.onPrimary),
+                ),
+              ),
+            ),
           ),
         ),
         const SizedBox(height: 14),

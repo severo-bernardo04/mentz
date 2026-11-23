@@ -2,6 +2,7 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import '../../../models/profile_models.dart';
 import '../../workout_session/widgets/set_count_summary.dart';
+import '../../../widgets/app_logo.dart';
 
 /// Card visual moderno no formato Instagram Stories (9:16)
 /// projetado para exibir a foto tirada pelo usuário com as informações
@@ -186,7 +187,7 @@ class WorkoutShareCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // Topo: Logo oficial do App (ícone psychology com gradiente + MENTZ)
+                // Topo: logo oficial do app (silhueta do Mentz com gradiente + MENTZ)
                 Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
@@ -207,10 +208,9 @@ class WorkoutShareCard extends StatelessWidget {
                           ),
                         ],
                       ),
-                      child: const Icon(
-                        Icons.psychology_rounded,
-                        color: Colors.white,
-                        size: 20,
+                      // Logo do Mentz no selo da marca
+                      child: const Center(
+                        child: AppLogo(size: 24, color: Colors.white),
                       ),
                     ),
                     const SizedBox(width: 8),
