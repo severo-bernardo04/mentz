@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
-/// AppBar transparente da home: marca + ajustes + sair.
+import '../../../widgets/app_logo.dart';
+
+/// AppBar transparente da home: marca (logo e nome) + ajustes + sair.
 class HomeAppBar extends StatelessWidget implements PreferredSizeWidget {
   final VoidCallback onSettings;
   final VoidCallback onLogout;
@@ -21,13 +23,21 @@ class HomeAppBar extends StatelessWidget implements PreferredSizeWidget {
       elevation: 0,
       scrolledUnderElevation: 0,
       automaticallyImplyLeading: false,
-      title: Text(
-        'Mentz',
-        style: TextStyle(
-          color: Theme.of(context).colorScheme.primary,
-          fontWeight: FontWeight.w800,
-          letterSpacing: 1.5,
-        ),
+      titleSpacing: 20,
+      title: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const AppLogo(size: 30),
+          const SizedBox(width: 8),
+          Text(
+            'Mentz',
+            style: TextStyle(
+              color: Theme.of(context).colorScheme.primary,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 1.5,
+            ),
+          ),
+        ],
       ),
       actions: [
         IconButton(

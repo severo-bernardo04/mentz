@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
 import '../models/app_user.dart';
+import '../models/bmi_info.dart';
 import 'user_profile_service.dart';
 
 /// Modo de tema da aplicação.
@@ -14,6 +15,7 @@ enum AppThemeMode {
 
 /// Preferências do usuário logado: tema, idioma e exibição do cronômetro.
 /// Ficam no campo `settings` de `users/{uid}`, valendo em qualquer aparelho.
+/// Também guarda o sexo do perfil, que escolhe o boneco anatômico.
 class SettingsService extends ChangeNotifier {
   static final SettingsService _instance = SettingsService._internal();
   factory SettingsService() => _instance;
@@ -35,11 +37,16 @@ class SettingsService extends ChangeNotifier {
   AppThemeMode _themeMode = AppThemeMode.light;
   String _language = _defaultLanguage;
   String _timerDisplayMode = _defaultTimerMode;
+  BiologicalSex? _sex;
 
   AppThemeMode get themeMode => _themeMode;
   bool get isDarkMode => _themeMode == AppThemeMode.dark;
   String get language => _language;
   String get timerDisplayMode => _timerDisplayMode;
+
+  /// Usa o boneco feminino no mapa muscular. Sem sexo informado no
+  /// perfil, o boneco é o masculino.
+  bool get femaleBody => _sex == BiologicalSex.female;
 
   /// Retorna o tema claro padronizado da aplicação.
   static ThemeData get lightTheme {
@@ -111,6 +118,7 @@ class SettingsService extends ChangeNotifier {
     _themeMode = AppThemeMode.light;
     _language = _defaultLanguage;
     _timerDisplayMode = _defaultTimerMode;
+    _sex = null;
 
     // Chamado durante o descarte de widgets, quando a árvore não pode mudar
     scheduleMicrotask(notifyListeners);
@@ -132,15 +140,20 @@ class SettingsService extends ChangeNotifier {
         ? user.timerDisplayMode!
         : _timerDisplayMode;
 
+    // Sexo do perfil (campo `sex` de users/{uid}), para o boneco anatômico
+    final sex = BiologicalSex.tryParse(user.sex);
+
     if (theme == _themeMode &&
         language == _language &&
-        timerMode == _timerDisplayMode) {
+        timerMode == _timerDisplayMode &&
+        sex == _sex) {
       return;
     }
 
     _themeMode = theme;
     _language = language;
     _timerDisplayMode = timerMode;
+    _sex = sex;
     notifyListeners();
   }
 
@@ -203,6 +216,7 @@ class SettingsService extends ChangeNotifier {
     _themeMode = defaultMode;
     _language = _defaultLanguage;
     _timerDisplayMode = _defaultTimerMode;
+    _sex = null;
     notifyListeners();
   }
 }

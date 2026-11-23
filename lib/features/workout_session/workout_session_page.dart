@@ -530,7 +530,7 @@ class _WorkoutSessionPageState extends State<WorkoutSessionPage>
                 SectionCard(
                   title: 'Pontuação muscular',
                   icon: Icons.accessibility_new_rounded,
-                  child: MuscleScoreList(
+                  child: MuscleScoreOverview(
                     scores: MuscleAnalysisService.dayScores(day),
                   ),
                 ),

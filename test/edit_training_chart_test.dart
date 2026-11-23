@@ -131,6 +131,13 @@ void main() {
       expect(form.days, hasLength(3));
       expect(form.buildChart().id, startsWith('chart-'));
     });
+
+    test('planilha nova começa sem nome', () {
+      final form = ChartFormController();
+      addTearDown(form.dispose);
+
+      expect(form.nameCtrl.text, isEmpty);
+    });
   });
 
   group('Telas', () {

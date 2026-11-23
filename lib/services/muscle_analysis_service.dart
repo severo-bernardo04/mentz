@@ -86,6 +86,9 @@ abstract final class MuscleAnalysisService {
     'Panturrilha': ['panturrilha', 'sóleo', 'pés'],
   };
 
+  /// Nomes dos grupamentos conhecidos (os que aparecem no boneco anatômico).
+  static Iterable<String> get knownGroups => _groupKeywords.keys;
+
   /// Grupamento de [muscle]. Um músculo que não se encaixa em nenhum
   /// grupamento conhecido forma um grupamento com o próprio nome.
   static String groupOf(String muscle) {

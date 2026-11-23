@@ -260,6 +260,11 @@ void main() {
       await tester.pumpWidget(createWidgetUnderTest());
       await tester.pumpAndSettle();
 
+      // O nome começa vazio: preenche para chegar à validação dos dias
+      await tester.enterText(
+        find.byKey(const Key('chart_name_field')),
+        'Hipertrofia',
+      );
       await tester.tap(find.text('Criar Planilha'));
       await tester.pumpAndSettle();
 

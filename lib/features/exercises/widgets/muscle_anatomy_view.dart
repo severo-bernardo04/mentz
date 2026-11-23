@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:muscle_mapper/muscle_mapper.dart';
+
 import '../../../models/profile_models.dart';
+import '../../../services/settings_service.dart';
+import '../../../widgets/muscle_body_map.dart';
 import 'muscle_anatomy_painter.dart';
 import 'muscle_legend_bar.dart';
 
@@ -57,14 +61,14 @@ class _MuscleAnatomyViewState extends State<MuscleAnatomyView> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
-    final isDark = theme.brightness == Brightness.dark;
 
-    final baseBodyColor = isDark
-        ? const Color(0xFF2C2D35)
-        : const Color(0xFFE2E4EC);
-    final bodyBorderColor = isDark
-        ? const Color(0xFF434555)
-        : const Color(0xFFB5B8C8);
+    // Cor de cada região do boneco pelo papel no exercício (principal,
+    // alta ativação ou secundário), com as cores da legenda
+    final roles = MuscleMapperGroups.rolesOf(widget.exercise);
+    final colors = {
+      for (final entry in roles.entries)
+        entry.key: MuscleRole.values.byName(entry.value.name).color,
+    };
 
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -102,14 +106,25 @@ class _MuscleAnatomyViewState extends State<MuscleAnatomyView> {
               borderRadius: BorderRadius.circular(20),
               border: Border.all(color: cs.outlineVariant.withAlpha(70)),
             ),
-            child: CustomPaint(
-              painter: MuscleAnatomyPainter(
-                exercise: widget.exercise,
-                viewType: _viewType,
-                baseColor: baseBodyColor,
-                borderColor: bodyBorderColor,
+            // Boneco do pacote muscle_mapper (desenhos SVG do próprio
+            // pacote), masculino ou feminino conforme o sexo do perfil
+            child: MuscleMapper(
+              key: Key('exercise_anatomy_${_viewType.name}'),
+              gender: SettingsService().femaleBody
+                  ? AnatomyGender.female
+                  : AnatomyGender.male,
+              view: _viewType == AnatomyViewType.anterior
+                  ? AnatomyView.front
+                  : AnatomyView.back,
+              assetProvider: const DefaultAnatomyProvider(
+                style: AnatomyStyle.minimal,
               ),
-              size: Size(widget.height * 0.65, widget.height),
+              activeMuscles: colors.keys.toSet(),
+              muscleColors: colors,
+              baseColor: cs.onSurfaceVariant,
+              // Sem animação infinita enquanto o desenho carrega
+              loadingWidget: const SizedBox.shrink(),
+              onError: (_) {},
             ),
           ),
         ),

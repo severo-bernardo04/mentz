@@ -24,7 +24,8 @@ class ChartFormController extends ChangeNotifier {
   /// Com [editing], o formulário começa preenchido com os dados da planilha.
   ChartFormController({this.editing})
     : nameCtrl = TextEditingController(
-        text: editing?.name ?? 'Training Charts 7',
+        // Planilha nova começa sem nome; o campo mostra uma dica
+        text: editing?.name ?? '',
       ),
       days = editing == null ? _defaultDays() : _daysOf(editing),
       selectedWeekdays = _weekdaysOf(editing),
