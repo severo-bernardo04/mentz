@@ -1177,6 +1177,7 @@ class TrainerProfile {
   final String? sex;
   final String? photoUrl;
   final TrainerRole? role;
+  final String? jobTitle;
   final String? cref;
   final List<String> specialties;
   final List<String> qualifications;
@@ -1200,6 +1201,7 @@ class TrainerProfile {
     this.sex,
     this.photoUrl,
     this.role,
+    this.jobTitle,
     this.cref,
     this.specialties = const [],
     this.qualifications = const [],

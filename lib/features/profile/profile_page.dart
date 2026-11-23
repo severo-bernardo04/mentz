@@ -124,6 +124,7 @@ class _TrainerProfileLoaderState extends State<_TrainerProfileLoader> {
       sex: u?.sex,
       photoUrl: u?.photoBase64,
       role: u?.trainerRole,
+      jobTitle: u?.jobTitle,
       cref: u?.cref,
       specialties: u?.specialties ?? const [],
       qualifications: u?.qualifications ?? const [],

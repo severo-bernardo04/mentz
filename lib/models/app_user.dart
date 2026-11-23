@@ -28,6 +28,7 @@ class AppUser {
   // Dados profissionais, guardados no campo `trainer` do documento.
   // Só existem para treinadores e só aparecem se tiverem sido cadastrados.
   final TrainerRole? trainerRole;
+  final String? jobTitle;
   final String? cref;
   final List<String> specialties;
   final List<String> qualifications;
@@ -57,6 +58,7 @@ class AppUser {
     this.timerDisplayMode,
     this.activeWorkout,
     this.trainerRole,
+    this.jobTitle,
     this.cref,
     this.specialties = const [],
     this.qualifications = const [],
@@ -97,6 +99,7 @@ class AppUser {
       trainerRole: TrainerRole.values
           .where((r) => r.name == trainer['role'])
           .firstOrNull,
+      jobTitle: trainer['jobTitle'] as String?,
       cref: trainer['cref'] as String?,
       specialties: _strings(trainer['specialties']),
       qualifications: _strings(trainer['qualifications']),
