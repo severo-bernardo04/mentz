@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../../../services/muscle_analysis_service.dart';
+import '../../../services/settings_service.dart';
+import '../../../widgets/muscle_body_map.dart';
 
 /// Abre a pontuação muscular em uma folha (ex: a da planilha inteira).
 Future<void> showMuscleScoreSheet(
@@ -47,7 +49,7 @@ Future<void> showMuscleScoreSheet(
                             padding: EdgeInsets.symmetric(vertical: 16),
                             child: Text('Nenhum exercício cadastrado ainda.'),
                           )
-                        : MuscleScoreList(scores: scores),
+                        : MuscleScoreOverview(scores: scores),
                   ),
                 ),
               ],
@@ -59,6 +61,42 @@ Future<void> showMuscleScoreSheet(
   );
 }
 
+/// Abre os exercícios que compõem a pontuação de um grupamento.
+Future<void> showMuscleScoreDetails(BuildContext context, MuscleScore score) {
+  return showModalBottomSheet<void>(
+    context: context,
+    showDragHandle: true,
+    isScrollControlled: true,
+    builder: (_) => _MuscleScoreSheet(score),
+  );
+}
+
+/// Pontuação muscular completa: o boneco anatômico pintado conforme os
+/// pontos e, abaixo, a lista por grupamento. Tocar em um músculo do boneco
+/// ou em uma linha da lista abre os exercícios daquele grupamento.
+class MuscleScoreOverview extends StatelessWidget {
+  final List<MuscleScore> scores;
+
+  const MuscleScoreOverview({super.key, required this.scores});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        MuscleBodyMap(
+          scores: scores,
+          // Boneco masculino ou feminino conforme o sexo do perfil
+          female: SettingsService().femaleBody,
+          onGroupTap: (score) => showMuscleScoreDetails(context, score),
+        ),
+        const SizedBox(height: 12),
+        MuscleScoreList(scores: scores),
+      ],
+    );
+  }
+}
+
 /// Pontuação muscular do treino: um grupamento por linha, do mais para o
 /// menos trabalhado, com uma barra proporcional aos pontos. Tocar em um
 /// grupamento lista os exercícios que compõem a ativação dele.
@@ -66,15 +104,6 @@ class MuscleScoreList extends StatelessWidget {
   final List<MuscleScore> scores;
 
   const MuscleScoreList({super.key, required this.scores});
-
-  void _showDetails(BuildContext context, MuscleScore score) {
-    showModalBottomSheet<void>(
-      context: context,
-      showDragHandle: true,
-      isScrollControlled: true,
-      builder: (_) => _MuscleScoreSheet(score),
-    );
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -90,7 +119,7 @@ class MuscleScoreList extends StatelessWidget {
             child: InkWell(
               key: Key('muscle_score_${score.group}'),
               borderRadius: BorderRadius.circular(10),
-              onTap: () => _showDetails(context, score),
+              onTap: () => showMuscleScoreDetails(context, score),
               child: Padding(
                 padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
                 child: Row(
