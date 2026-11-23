@@ -1173,6 +1173,8 @@ class TrainerProfile {
   final String name;
   final String email;
   final String? phone;
+  final DateTime? birthDate;
+  final String? sex;
   final String? photoUrl;
   final TrainerRole? role;
   final String? cref;
@@ -1194,6 +1196,8 @@ class TrainerProfile {
     required this.name,
     required this.email,
     this.phone,
+    this.birthDate,
+    this.sex,
     this.photoUrl,
     this.role,
     this.cref,

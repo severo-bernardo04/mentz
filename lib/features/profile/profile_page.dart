@@ -120,6 +120,8 @@ class _TrainerProfileLoaderState extends State<_TrainerProfileLoader> {
       name: widget.name,
       email: widget.email,
       phone: u?.phone,
+      birthDate: u?.birthDate,
+      sex: u?.sex,
       photoUrl: u?.photoBase64,
       role: u?.trainerRole,
       cref: u?.cref,
