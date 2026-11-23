@@ -84,7 +84,7 @@ class _ProfileTabBar extends StatelessWidget {
 
     return TabBar(
       isScrollable: true,
-      tabAlignment: TabAlignment.start,
+      tabAlignment: TabAlignment.center,
       dividerColor: Colors.transparent,
       indicatorSize: TabBarIndicatorSize.tab,
       indicator: BoxDecoration(

@@ -4,12 +4,19 @@ import 'package:mentz/models/profile_models.dart';
 import 'package:mentz/widgets/info_row.dart';
 import 'package:mentz/widgets/section_card.dart';
 import 'package:mentz/widgets/status_chip.dart';
+import 'package:mentz/core/utils/snackbars.dart';
+import 'package:mentz/features/profile/student/widgets/edit_personal_info_sheet.dart';
 
 /// Aba 1: informações pessoais e matrícula.
 class PersonalTab extends StatelessWidget {
   final StudentProfile student;
+  final bool isOwnerView;
 
-  const PersonalTab({super.key, required this.student});
+  const PersonalTab({
+    super.key,
+    required this.student,
+    this.isOwnerView = false,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -20,6 +27,25 @@ class PersonalTab extends StatelessWidget {
         SectionCard(
           title: 'Informações pessoais',
           icon: Icons.badge_outlined,
+          trailing: isOwnerView
+              ? IconButton(
+            key: const Key('edit_personal_info_button'),
+            tooltip: 'Editar',
+            icon: const Icon(Icons.edit_outlined, size: 20),
+            onPressed: () async {
+              final saved = await showEditPersonalInfoSheet(
+                context,
+                name: s.name,
+                phone: s.phone,
+                birthDate: s.birthDate,
+                sex: s.sex,
+              );
+              if (saved == true && context.mounted) {
+                context.showSnack('Informações atualizadas.');
+              }
+            },
+          )
+              : null,
           child: Column(
             children: [
               InfoRow(

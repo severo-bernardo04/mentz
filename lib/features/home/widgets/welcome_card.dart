@@ -1,18 +1,21 @@
 import 'package:flutter/material.dart';
 
 import '../../../widgets/app_card.dart';
+import 'dart:convert';
 
 /// Cartão de boas-vindas com avatar, nome e e-mail.
 /// Ao clicar, navega para o perfil do usuário.
 class WelcomeCard extends StatelessWidget {
   final String? userName;
   final String? userEmail;
+  final String? photoBase64;
   final VoidCallback? onTap;
 
   const WelcomeCard({
     super.key,
     this.userName,
     this.userEmail,
+    this.photoBase64,
     this.onTap,
   });
 
@@ -26,11 +29,29 @@ class WelcomeCard extends StatelessWidget {
     return 'visitante';
   }
 
+  String get _greeting {
+    final hour = DateTime.now().hour;
+    if (hour >= 5 && hour < 12) return 'Bom dia';
+    if (hour >= 12 && hour < 18) return 'Boa tarde';
+    return 'Boa noite';
+  }
+
+  ImageProvider? get _photo {
+    final p = photoBase64;
+    if (p == null || p.isEmpty) return null;
+    try {
+      return MemoryImage(base64Decode(p));
+    } catch (_) {
+      return null;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
     final name = _displayName;
+
 
     return AppCard(
       onTap: onTap,
@@ -39,7 +60,9 @@ class WelcomeCard extends StatelessWidget {
           CircleAvatar(
             radius: 30,
             backgroundColor: cs.primary,
-            child: Text(
+            backgroundImage: _photo,
+            child: _photo != null ? null
+            :Text(
               name[0].toUpperCase(),
               style: TextStyle(
                 fontSize: 26,
@@ -54,7 +77,7 @@ class WelcomeCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Olá, $name!',
+                  '$_greeting, $name!',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: theme.textTheme.titleLarge?.copyWith(
@@ -63,7 +86,7 @@ class WelcomeCard extends StatelessWidget {
                 ),
                 if (userEmail != null && userEmail!.isNotEmpty)
                   Text(
-                    userEmail!,
+                    'Toque para acessar seu perfil',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: theme.textTheme.bodyMedium?.copyWith(

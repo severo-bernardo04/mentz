@@ -17,6 +17,7 @@ import 'widgets/shortcuts_grid.dart';
 import 'widgets/current_training_chart.dart';
 import 'widgets/welcome_card.dart';
 import 'package:mentz/services/auth_service.dart';
+import 'widgets/home_progress_card.dart';
 
 class HomePage extends StatefulWidget {
   /// Nome do usuário (no Firebase: FirebaseAuth.instance.currentUser?.displayName)
@@ -28,11 +29,14 @@ class HomePage extends StatefulWidget {
   /// Papel do usuário vindo do backend/Firestore.
   final UserRole role;
 
+  final String? photoBase64;
+
   const HomePage({
     super.key,
     this.userName,
     this.userEmail,
     this.role = UserRole.student,
+    this.photoBase64,
   });
 
   @override
@@ -88,6 +92,7 @@ class _HomePageState extends State<HomePage> {
                       child: WelcomeCard(
                         userName: widget.userName,
                         userEmail: widget.userEmail,
+                        photoBase64: widget.photoBase64,
                         onTap: _openProfile,
                       ),
                     ),
@@ -108,6 +113,13 @@ class _HomePageState extends State<HomePage> {
                     const SizedBox(height: 12),
                     const CurrentTrainingChart(),
                     const SizedBox(height: 28),
+                    const SizedBox(height: 28),
+                    const FadeSlideIn(
+                      delay: Duration(milliseconds: 160),
+                      child: SectionHeader(title: 'Progresso'),
+                    ),
+                    const SizedBox(height: 12),
+                    const HomeProgressCard(),
                     const FadeSlideIn(
                       delay: Duration(milliseconds: 170),
                       child: SectionHeader(title: 'Evolução'),
