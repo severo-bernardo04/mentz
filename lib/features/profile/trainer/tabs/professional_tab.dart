@@ -7,6 +7,8 @@ import 'package:mentz/widgets/section_card.dart';
 import 'package:mentz/widgets/status_chip.dart';
 import 'package:mentz/core/utils/snackbars.dart';
 import 'package:mentz/features/profile/student/widgets/edit_personal_info_sheet.dart';
+import 'package:mentz/core/utils/snackbars.dart';
+import 'package:mentz/features/profile/trainer/widgets/edit_professional_info_sheet.dart';
 
 /// Aba 1: contato, dados profissionais, especialidades e horários.
 class ProfessionalTab extends StatelessWidget {
@@ -87,25 +89,58 @@ class ProfessionalTab extends StatelessWidget {
           ),
         ),
 
+
         SectionCard(
           title: 'Dados profissionais',
           icon: Icons.work_outline,
-          trailing: t.employmentActive == null
-              ? null
-              : StatusChip.active(t.employmentActive!),
+          trailing: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (t.employmentActive != null)
+                StatusChip.active(t.employmentActive!),
+
+              IconButton(
+                key: const Key(
+                  'edit_trainer_professional_info_button',
+                ),
+                tooltip: 'Editar dados profissionais',
+                icon: const Icon(
+                  Icons.edit_outlined,
+                  size: 20,
+                ),
+                onPressed: () async {
+                  final saved = await showEditProfessionalInfoSheet(
+                    context,
+                    jobTitle: t.jobTitle ?? t.role?.label,
+                    cref: t.cref,
+                    experienceYears: t.experienceYears,
+                  );
+
+                  if (saved == true && context.mounted) {
+                    context.showSnack(
+                      'Dados profissionais atualizados.',
+                    );
+                  }
+                },
+              ),
+            ],
+          ),
           child: Column(
             children: [
               InfoRow(
                 icon: Icons.assignment_ind_outlined,
                 label: 'Cargo',
-                value: t.role?.label ?? notInformed,
+                value: t.jobTitle?.isNotEmpty == true
+                    ? t.jobTitle!
+                    : (t.role?.label ?? notInformed),
               ),
-              if (t.cref != null)
-                InfoRow(
-                  icon: Icons.verified_outlined,
-                  label: 'CREF',
-                  value: t.cref!,
-                ),
+              InfoRow(
+                icon: Icons.verified_outlined,
+                label: 'CREF',
+                value: t.cref?.isNotEmpty == true
+                    ? t.cref!
+                    : notInformed,
+              ),
               InfoRow(
                 icon: Icons.timelapse,
                 label: 'Tempo de experiência',
@@ -121,6 +156,7 @@ class ProfessionalTab extends StatelessWidget {
             ],
           ),
         ),
+
         SectionCard(
           title: 'Especialidades',
           icon: Icons.sports_gymnastics,

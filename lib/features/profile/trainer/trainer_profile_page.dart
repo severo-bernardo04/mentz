@@ -72,7 +72,9 @@ class TrainerProfilePage extends StatelessWidget {
       title: 'Meu perfil',
       header: ProfileHeader(
         name: t.name,
-        subtitle: t.role?.label ?? 'Treinador',
+        subtitle: t.jobTitle?.isNotEmpty == true
+            ? t.jobTitle!
+            : (t.role?.label ?? 'Treinador'),
         photoUrl: t.photoUrl,
         onEditPhoto: () => _changePhoto(context),
         chips: [
