@@ -57,6 +57,43 @@ class UserProfileService {
   Future<void> update(String uid, Map<String, dynamic> fields) =>
       _doc(uid).update(fields);
 
+  Future<void> updateTrainerProfessionalInfo(
+      String uid, {
+        String? jobTitle,
+        String? cref,
+        int? experienceYears,
+      }) async {
+    final cleanTitle = (jobTitle ?? '').trim();
+    final cleanCref = (cref ?? '').trim();
+
+    if (cleanTitle.isNotEmpty &&
+        (cleanTitle.length < 2 || cleanTitle.length > 80)) {
+      throw ArgumentError('Cargo profissional inválido.');
+    }
+
+    if (cleanCref.length > 32) {
+      throw ArgumentError('CREF inválido.');
+    }
+
+    if (experienceYears != null &&
+        (experienceYears < 0 || experienceYears > 80)) {
+      throw ArgumentError(
+        'O tempo de experiência deve estar entre 0 e 80 anos.',
+      );
+    }
+
+    await update(uid, {
+      'trainer.jobTitle': cleanTitle.isEmpty
+          ? FieldValue.delete()
+          : cleanTitle,
+      'trainer.cref': cleanCref.isEmpty
+          ? FieldValue.delete()
+          : cleanCref,
+      'trainer.experienceYears':
+      experienceYears ?? FieldValue.delete(),
+    });
+  }
+
   /// Atualiza medidas físicas (altura, peso, nascimento, sexo) do usuário.
   /// Se [weightKg] for informado, também adiciona ao [weightHistory].
   Future<void> updatePhysicalMeasures(
