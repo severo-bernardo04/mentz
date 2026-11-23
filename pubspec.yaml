@@ -57,6 +57,7 @@ dev_dependencies:
   flutter_lints: ^6.0.0
   fake_cloud_firestore: ^4.5.0
   flutter_launcher_icons: ^0.14.4
+  flutter_native_splash: ^2.4.6
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
@@ -116,3 +117,18 @@ flutter_launcher_icons:
   # A figura ocupa a camada inteira, com as pernas saindo pela borda
   adaptive_icon_foreground_inset: 0
   adaptive_icon_monochrome: "branding/launcher/monochrome.png"
+
+# Tela de abertura do Android, gerada com `dart run flutter_native_splash:create`.
+# No Android 12+ o sistema usa android_12.image (1152px, recortada em círculo),
+# em vez de ampliar o ícone do launcher, que ficava borrado.
+flutter_native_splash:
+  android: true
+  ios: false
+  web: false
+  color: "#EEF0FF"
+  color_dark: "#12141C"
+  image: branding/splash/splash.png
+  android_12:
+    image: branding/splash/splash_android12.png
+    color: "#EEF0FF"
+    color_dark: "#12141C"
