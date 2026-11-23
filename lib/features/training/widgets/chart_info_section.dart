@@ -18,6 +18,8 @@ class ChartInfoSection extends StatelessWidget {
       child: AppTextField(
         key: const Key('chart_name_field'),
         controller: nameCtrl,
+        // Texto opaco enquanto o campo está vazio
+        hint: 'Insira o nome da planilha',
         textCapitalization: TextCapitalization.sentences,
         validator: (v) {
           final emptyError = Validators.notEmpty(v, 'Informe o nome da planilha.');
