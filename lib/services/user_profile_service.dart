@@ -30,6 +30,7 @@ class UserProfileService {
     String? sex,
     double? heightCm,
     double? weight,
+    String? termsVersion,
   }) async {
     final ref = _doc(user.uid);
     if ((await ref.get()).exists) return;
@@ -40,6 +41,13 @@ class UserProfileService {
       'role': UserRole.student.name,
       'createdAt': FieldValue.serverTimestamp(),
     };
+    // Registro do aceite dos Termos de Uso (versão + data do servidor)
+    if (termsVersion != null && termsVersion.isNotEmpty) {
+      data['termsAcceptance'] = {
+        'version': termsVersion,
+        'acceptedAt': FieldValue.serverTimestamp(),
+      };
+    }
     if (birthDate != null) data['birthDate'] = Timestamp.fromDate(birthDate);
     if (sex != null && sex.isNotEmpty) data['sex'] = sex;
     if (heightCm != null && heightCm > 0) data['heightCm'] = heightCm;
