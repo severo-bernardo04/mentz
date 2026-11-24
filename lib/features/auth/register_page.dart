@@ -7,6 +7,7 @@ import '../../models/profile_models.dart';
 import '../../widgets/app_button.dart';
 import '../../widgets/app_text_field.dart';
 import '../../widgets/staggered_column.dart';
+import 'terms_of_use_page.dart';
 import 'widgets/auth_footer_link.dart';
 import 'widgets/auth_header.dart';
 import 'widgets/auth_scaffold.dart';
@@ -97,6 +98,8 @@ class _RegisterPageState extends State<RegisterPage> {
         sex: _sex?.label,
         heightCm: height,
         weight: weight,
+        // O formulário só chega aqui com os termos aceitos (validator)
+        termsVersion: TermsOfUseContent.version,
       );
       if (!mounted) return;
 

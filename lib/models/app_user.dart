@@ -22,6 +22,11 @@ class AppUser {
   final String? language;
   final String? timerDisplayMode;
 
+  /// Aceite dos Termos de Uso, guardado no campo `termsAcceptance`.
+  /// Fica nulo em contas criadas antes dos termos existirem.
+  final String? termsVersion;
+  final DateTime? termsAcceptedAt;
+
   /// Treino em andamento, guardado no campo `activeSession`.
   final ActiveWorkout? activeWorkout;
 
@@ -55,6 +60,8 @@ class AppUser {
     this.themeMode,
     this.language,
     this.timerDisplayMode,
+    this.termsVersion,
+    this.termsAcceptedAt,
     this.activeWorkout,
     this.trainerRole,
     this.cref,
@@ -71,6 +78,9 @@ class AppUser {
     final settings = map['settings'] as Map<String, dynamic>? ?? const {};
     final trainer =
     Map<String, dynamic>.from(map['trainer'] as Map? ?? const {});
+    final terms = Map<String, dynamic>.from(
+      map['termsAcceptance'] as Map? ?? const {},
+    );
 
     return AppUser(
       uid: uid,
@@ -93,6 +103,8 @@ class AppUser {
       themeMode: settings['themeMode'] as String?,
       language: settings['language'] as String?,
       timerDisplayMode: settings['timerDisplayMode'] as String?,
+      termsVersion: terms['version'] as String?,
+      termsAcceptedAt: (terms['acceptedAt'] as Timestamp?)?.toDate(),
       activeWorkout: ActiveWorkout.tryFromMap(map['activeSession']),
       trainerRole: TrainerRole.values
           .where((r) => r.name == trainer['role'])

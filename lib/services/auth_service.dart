@@ -42,6 +42,7 @@ class AuthService {
     String? sex,
     double? heightCm,
     double? weight,
+    String? termsVersion,
   }) {
     return _guard(() async {
       final cred = await _firebase.createUserWithEmailAndPassword(
@@ -58,6 +59,7 @@ class AuthService {
         sex: sex,
         heightCm: heightCm,
         weight: weight,
+        termsVersion: termsVersion,
       );
     });
   }
