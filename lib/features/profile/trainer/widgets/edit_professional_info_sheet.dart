@@ -91,12 +91,15 @@ class _EditProfessionalInfoSheetState
       if (mounted) {
         Navigator.of(context).pop(true);
       }
-    } catch (_) {
+    } catch (e, stackTrace) {
+      debugPrint('ERRO AO SALVAR DADOS PROFISSIONAIS: $e');
+      debugPrintStack(stackTrace: stackTrace);
+
       if (mounted) {
         setState(() => _loading = false);
 
         context.showSnack(
-          'Não foi possível salvar os dados profissionais.',
+          'Erro ao salvar: $e',
         );
       }
     }
